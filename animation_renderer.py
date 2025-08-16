@@ -16,10 +16,20 @@ class RenderConfig:
     total_frames: int
     action_name: str = "MidiPoseCyclingAnimation"
     pose_cycle_mode: str = "LOOP"  # LOOP, BOOMERANG, RANDOM
+    animation_mode: str = "POSE"  # POSE or ACTION
+    start_frame: int = 1  # Start frame for animation
     
 def insert_pose_keyframe(obj: bpy.types.Object, pose_action: bpy.types.Action, 
-                         frame: int, interpolation: str = 'LINEAR') -> None:
-    """Insert keyframes from a pose action into the current action at a specific frame"""
+                         frame: int, interpolation: str = 'LINEAR', mode: str = 'POSE') -> None:
+    """Insert keyframes from a pose action into the current action at a specific frame
+    
+    Args:
+        obj: Object to animate
+        pose_action: Action containing pose or animation
+        frame: Frame to insert keyframes at
+        interpolation: Interpolation type for keyframes
+        mode: 'POSE' for single frame, 'ACTION' for full action
+    """
     if not pose_action:
         return
     
@@ -28,21 +38,36 @@ def insert_pose_keyframe(obj: bpy.types.Object, pose_action: bpy.types.Action,
         obj.animation_data_create()
     
     if not obj.animation_data.action:
-        obj.animation_data.action = bpy.data.actions.new(name=config.action_name if 'config' in locals() else "MidiPoseCyclingAnimation")
+        obj.animation_data.action = bpy.data.actions.new(name="MidiPoseCyclingAnimation")
     
     current_action = obj.animation_data.action
     
-    # Copy keyframe values from the pose action
-    for fcurve in pose_action.fcurves:
-        target_fcurve = current_action.fcurves.find(fcurve.data_path, index=fcurve.array_index)
-        if not target_fcurve:
-            target_fcurve = current_action.fcurves.new(fcurve.data_path, index=fcurve.array_index)
-        
-        # Get the value at frame 0 of the pose
-        if fcurve.keyframe_points:
-            value = fcurve.evaluate(0)
-            keyframe = target_fcurve.keyframe_points.insert(frame, value, options={'FAST'})
-            keyframe.interpolation = interpolation
+    if mode == 'ACTION':
+        # Copy all keyframes from the action
+        for fcurve in pose_action.fcurves:
+            target_fcurve = current_action.fcurves.find(fcurve.data_path, index=fcurve.array_index)
+            if not target_fcurve:
+                target_fcurve = current_action.fcurves.new(fcurve.data_path, index=fcurve.array_index)
+            
+            # Copy all keyframes with offset
+            for kf in fcurve.keyframe_points:
+                new_frame = frame + kf.co[0]  # Offset keyframe time
+                keyframe = target_fcurve.keyframe_points.insert(new_frame, kf.co[1], options={'FAST'})
+                keyframe.interpolation = kf.interpolation
+                keyframe.handle_left_type = kf.handle_left_type
+                keyframe.handle_right_type = kf.handle_right_type
+    else:  # POSE mode
+        # Copy keyframe values from the pose action at frame 0
+        for fcurve in pose_action.fcurves:
+            target_fcurve = current_action.fcurves.find(fcurve.data_path, index=fcurve.array_index)
+            if not target_fcurve:
+                target_fcurve = current_action.fcurves.new(fcurve.data_path, index=fcurve.array_index)
+            
+            # Get the value at frame 0 of the pose
+            if fcurve.keyframe_points:
+                value = fcurve.evaluate(0)
+                keyframe = target_fcurve.keyframe_points.insert(frame, value, options={'FAST'})
+                keyframe.interpolation = interpolation
 
 def get_next_pose_index(current_index: int, num_poses: int, mode: str, direction: int = 1) -> Tuple[int, int]:
     """Get next pose index based on cycle mode.
@@ -102,34 +127,48 @@ def render_animation(config: RenderConfig, note_frames: List[int]) -> bool:
     
     # Process each MIDI note event
     for i, frame in enumerate(note_frames):
+        # Adjust for start frame
+        adjusted_frame = frame + config.start_frame - 1
         current_pose = pose_actions[pose_index]
         
-        # Insert keyframe at the note time with CONSTANT to hold the pose
-        insert_pose_keyframe(obj, current_pose, frame, 'CONSTANT')
-        frame_count += 1
-        
-        # Calculate hold end frame
-        hold_end_frame = frame + config.frames_to_hold
-        
-        # Check if we need to adjust the hold for the next note
-        if i < len(note_frames) - 1:
-            next_frame = note_frames[i + 1]
-            if next_frame > hold_end_frame:
-                # Insert keyframe at end of hold with configured interpolation
-                insert_pose_keyframe(obj, current_pose, hold_end_frame, config.interpolation_type)
-                frame_count += 1
-        else:
-            # Last note, insert hold end
-            insert_pose_keyframe(obj, current_pose, hold_end_frame, config.interpolation_type)
+        if config.animation_mode == 'ACTION':
+            # Insert full action at the note timing
+            insert_pose_keyframe(obj, current_pose, adjusted_frame, config.interpolation_type, mode='ACTION')
             frame_count += 1
+        else:  # POSE mode
+            # Insert keyframe at the note time with CONSTANT to hold the pose
+            insert_pose_keyframe(obj, current_pose, adjusted_frame, 'CONSTANT', mode='POSE')
+            frame_count += 1
+            
+            # Calculate hold end frame
+            hold_end_frame = adjusted_frame + config.frames_to_hold
+            
+            # Check if we need to adjust the hold for the next note
+            if i < len(note_frames) - 1:
+                next_frame = note_frames[i + 1] + config.start_frame - 1
+                if next_frame > hold_end_frame:
+                    # Insert keyframe at end of hold with configured interpolation
+                    insert_pose_keyframe(obj, current_pose, hold_end_frame, config.interpolation_type, mode='POSE')
+                    frame_count += 1
+            else:
+                # Last note, insert hold end
+                insert_pose_keyframe(obj, current_pose, hold_end_frame, config.interpolation_type, mode='POSE')
+                frame_count += 1
         
         # Get next pose index based on cycle mode
         pose_index, direction = get_next_pose_index(pose_index, len(pose_actions), config.pose_cycle_mode, direction)
     
     # Update scene frame range
     scene = bpy.context.scene
-    scene.frame_start = 0
-    scene.frame_end = min(hold_end_frame, config.total_frames) if note_frames else config.total_frames
+    scene.frame_start = config.start_frame
+    if note_frames:
+        if config.animation_mode == 'POSE':
+            last_frame = note_frames[-1] + config.start_frame - 1 + config.frames_to_hold
+        else:
+            last_frame = note_frames[-1] + config.start_frame - 1
+        scene.frame_end = min(last_frame, config.total_frames + config.start_frame - 1)
+    else:
+        scene.frame_end = config.total_frames + config.start_frame - 1
     
     return True
 

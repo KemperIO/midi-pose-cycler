@@ -169,9 +169,11 @@ class MIDIPOSE_OT_render_animation(Operator):
         props = context.scene.midi_pose_props
         
         col = layout.column()
-        col.label(text=f"Action '{props.action_name}' has existing keyframes!", icon='ERROR')
-        col.label(text="They will be cleared to generate new animation.")
+        col.alert = True
+        col.label(text=f"Clear keyframes for '{props.action_name}'?", icon='ERROR')
+        col.label(text="and generate new animation?")
         col.separator()
+        col.alert = False
         col.prop(props, "skip_keyframe_warning", text="Don't ask again for this action")
     
     def execute(self, context):
@@ -197,11 +199,10 @@ class MIDIPOSE_OT_render_animation(Operator):
             self.report({'ERROR'}, "No active object to animate")
             return {'CANCELLED'}
         
-        # Gather selected poses
-        poses = []
-        for pose_item in props.pose_items:
-            if pose_item.selected:
-                poses.append(pose_item.name)
+        # Gather selected poses in order
+        selected_poses = [p for p in props.pose_items if p.selected]
+        selected_poses.sort(key=lambda p: p.order_index)
+        poses = [p.name for p in selected_poses]
         
         if not poses:
             print("ERROR: No poses selected")
@@ -243,6 +244,18 @@ class MIDIPOSE_OT_render_animation(Operator):
             self.report({'WARNING'}, warning_msg)
             return {'CANCELLED'}
         
+        # Calculate actual start frame and duration based on timing mode
+        if props.use_smart_timing:
+            # Convert bars/beats to frames
+            frames_per_beat = (60.0 / props.bpm) * scene.render.fps
+            start_frame = int((props.midi_start_bar - 1) * props.beats_per_bar * frames_per_beat + 
+                            (props.midi_start_beat - 1) * frames_per_beat) + 1
+            duration_frames = int(props.midi_length_bars * props.beats_per_bar * frames_per_beat + 
+                                props.midi_length_beats * frames_per_beat)
+        else:
+            start_frame = props.midi_start_frame
+            duration_frames = max_frames
+        
         # Create render configuration
         config = RenderConfig(
             midi_path=props.midi_file,
@@ -252,9 +265,11 @@ class MIDIPOSE_OT_render_animation(Operator):
             frames_to_hold=props.frames_to_hold,
             interpolation_type=props.interpolation_type,
             fps=scene.render.fps,
-            total_frames=max_frames,
+            total_frames=duration_frames,
             action_name=props.action_name,
-            pose_cycle_mode=props.pose_cycle_mode
+            pose_cycle_mode=props.pose_cycle_mode,
+            animation_mode=props.animation_mode,
+            start_frame=start_frame
         )
         
         # Render the animation
@@ -348,10 +363,11 @@ class MIDIPOSE_OT_refresh_poses(Operator):
         props.pose_items.clear()
         
         poses = animation_renderer.get_available_poses()
-        for pose_name in poses:
+        for i, pose_name in enumerate(poses):
             item = props.pose_items.add()
             item.name = pose_name
             item.selected = False
+            item.order_index = i
         
         self.report({'INFO'}, f"Found {len(poses)} poses")
         return {'FINISHED'}
@@ -387,6 +403,64 @@ class MIDIPOSE_OT_invert_pose_selection(Operator):
         props = context.scene.midi_pose_props
         for pose in props.pose_items:
             pose.selected = not pose.selected
+        return {'FINISHED'}
+
+class MIDIPOSE_OT_move_pose(Operator):
+    """Move pose in the selection order"""
+    bl_idname = "midipose.move_pose"
+    bl_label = "Move Pose"
+    
+    direction: EnumProperty(
+        name="Direction",
+        items=[
+            ('UP', 'Up', 'Move up'),
+            ('DOWN', 'Down', 'Move down'),
+            ('TOP', 'Top', 'Move to top'),
+            ('BOTTOM', 'Bottom', 'Move to bottom')
+        ]
+    )
+    pose_name: StringProperty(name="Pose Name")
+    
+    def execute(self, context):
+        props = context.scene.midi_pose_props
+        
+        # Get selected poses in order
+        selected_poses = [p for p in props.pose_items if p.selected]
+        selected_poses.sort(key=lambda p: p.order_index)
+        
+        # Find the pose to move
+        pose_to_move = None
+        current_index = -1
+        for i, pose in enumerate(selected_poses):
+            if pose.name == self.pose_name:
+                pose_to_move = pose
+                current_index = i
+                break
+        
+        if not pose_to_move or current_index == -1:
+            return {'CANCELLED'}
+        
+        # Determine new index
+        if self.direction == 'UP':
+            new_index = max(0, current_index - 1)
+        elif self.direction == 'DOWN':
+            new_index = min(len(selected_poses) - 1, current_index + 1)
+        elif self.direction == 'TOP':
+            new_index = 0
+        else:  # BOTTOM
+            new_index = len(selected_poses) - 1
+        
+        if new_index == current_index:
+            return {'FINISHED'}
+        
+        # Reorder the poses
+        selected_poses.pop(current_index)
+        selected_poses.insert(new_index, pose_to_move)
+        
+        # Update order indices
+        for i, pose in enumerate(selected_poses):
+            pose.order_index = i
+        
         return {'FINISHED'}
 
 class MIDIPOSE_OT_save_config(Operator):
@@ -512,6 +586,7 @@ class PoseItem(bpy.types.PropertyGroup):
     """Property group for poses"""
     name: StringProperty(name="Pose Name")
     selected: BoolProperty(name="Selected", default=False)
+    order_index: IntProperty(name="Order", default=0)
 
 class MidiPoseProperties(bpy.types.PropertyGroup):
     """Main property group for the addon"""
@@ -613,4 +688,74 @@ class MidiPoseProperties(bpy.types.PropertyGroup):
         name="Skip Keyframe Warning",
         description="Don't warn about overwriting keyframes",
         default=False
+    )
+    
+    # Action mode - whether to use poses or actions
+    animation_mode: EnumProperty(
+        name="Animation Mode",
+        description="Choose between pose mode (single frame) or action mode (full action)",
+        items=[
+            ('POSE', 'Pose Mode', 'Use single frame poses from actions'),
+            ('ACTION', 'Action Mode', 'Use full actions for animation')
+        ],
+        default='POSE'
+    )
+    
+    # Timing properties
+    bpm: FloatProperty(
+        name="BPM",
+        description="Beats per minute",
+        default=120.0,
+        min=1.0,
+        max=999.0
+    )
+    
+    beats_per_bar: IntProperty(
+        name="Beats per Bar",
+        description="Number of beats in a bar",
+        default=4,
+        min=1,
+        max=32
+    )
+    
+    midi_start_frame: IntProperty(
+        name="Start Frame",
+        description="Frame to start MIDI animation",
+        default=1,
+        min=1
+    )
+    
+    # Smart timing controls
+    use_smart_timing: BoolProperty(
+        name="Use Smart Timing",
+        description="Use bar/beat controls instead of frame numbers",
+        default=False
+    )
+    
+    midi_start_bar: IntProperty(
+        name="Start Bar",
+        description="Bar to start MIDI animation",
+        default=1,
+        min=1
+    )
+    
+    midi_start_beat: IntProperty(
+        name="Start Beat",
+        description="Beat within bar to start",
+        default=1,
+        min=1
+    )
+    
+    midi_length_bars: IntProperty(
+        name="Length (Bars)",
+        description="Duration in bars",
+        default=8,
+        min=1
+    )
+    
+    midi_length_beats: IntProperty(
+        name="Length (Beats)",
+        description="Additional beats beyond bars",
+        default=0,
+        min=0
     )

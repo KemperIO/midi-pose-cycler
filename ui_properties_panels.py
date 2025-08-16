@@ -82,9 +82,14 @@ class MIDIPOSE_PT_properties_main(Panel, MidiPoseWorkspacePanel):
     
     col.separator()
     
+    # Animation mode selection
+    row = col.row()
+    row.label(text="Mode:")
+    row.prop(props, "animation_mode", text="")
+    
     # Animation Settings
     row = col.row()
-    row.label(text="Cycle Mode:")
+    row.label(text="Cycle:")
     row.prop(props, "pose_cycle_mode", text="")
     
     # Frame settings
@@ -98,12 +103,46 @@ class MIDIPOSE_PT_properties_main(Panel, MidiPoseWorkspacePanel):
     row.label(text="Interpolation:")
     row.prop(props, "interpolation_type", text="")
     
-    # Frame limit
+    # Timing section
     col.separator()
-    row = col.row(align=True)
-    row.prop(props, "use_frame_limit", text="Limit Frames")
-    if props.use_frame_limit:
-      row.prop(props, "frame_limit", text="")
+    timing_box = box.box()
+    timing_box.label(text="Timing", icon='TIME')
+    
+    # BPM settings
+    row = timing_box.row(align=True)
+    row.label(text="BPM:")
+    row.prop(props, "bpm", text="")
+    row.label(text="Beats/Bar:")
+    row.prop(props, "beats_per_bar", text="")
+    
+    # Smart/dumb timing toggle
+    timing_box.prop(props, "use_smart_timing", text="Use Musical Timing")
+    
+    if props.use_smart_timing:
+      # Smart controls (bars/beats)
+      col_timing = timing_box.column()
+      
+      row = col_timing.row(align=True)
+      row.label(text="Start:")
+      row.prop(props, "midi_start_bar", text="Bar")
+      row.prop(props, "midi_start_beat", text="Beat")
+      
+      row = col_timing.row(align=True)
+      row.label(text="Length:")
+      row.prop(props, "midi_length_bars", text="Bars")
+      row.prop(props, "midi_length_beats", text="+ Beats")
+    else:
+      # Dumb controls (frames)
+      col_timing = timing_box.column()
+      
+      row = col_timing.row()
+      row.label(text="Start Frame:")
+      row.prop(props, "midi_start_frame", text="")
+      
+      row = col_timing.row(align=True)
+      row.prop(props, "use_frame_limit", text="Limit")
+      if props.use_frame_limit:
+        row.prop(props, "frame_limit", text="")
     
     # Info
     info_text = f"Max: {props.frame_limit} frames" if props.use_frame_limit else "Using all MIDI events"
@@ -222,7 +261,21 @@ class MIDIPOSE_PT_properties_poses(Panel, MidiPoseWorkspacePanel):
         
         row.label(text=pose.name, icon=icon)
         
-        # Move up/down buttons could go here
+        # Move up/down buttons
+        sub = row.row(align=True)
+        sub.scale_x = 0.5
+        
+        # Move up
+        op = sub.operator("midipose.move_pose", text="", icon='TRIA_UP')
+        op.direction = 'UP'
+        op.pose_name = pose.name
+        sub.enabled = order > 1
+        
+        # Move down
+        op = sub.operator("midipose.move_pose", text="", icon='TRIA_DOWN')
+        op.direction = 'DOWN'
+        op.pose_name = pose.name
+        sub.enabled = order < len(selected_poses)
       
       box.separator()
     

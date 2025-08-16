@@ -46,6 +46,7 @@ classes = [
     ui_operators.MIDIPOSE_OT_select_all_poses,
     ui_operators.MIDIPOSE_OT_deselect_all_poses,
     ui_operators.MIDIPOSE_OT_invert_pose_selection,
+    ui_operators.MIDIPOSE_OT_move_pose,
     ui_operators.MIDIPOSE_OT_save_config,
     ui_operators.MIDIPOSE_OT_save_config_as,
     ui_operators.MIDIPOSE_OT_load_config,

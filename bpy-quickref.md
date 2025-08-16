@@ -316,10 +316,11 @@ action.asset_clear()
 pose_assets = [a for a in bpy.data.actions if a.asset_data]
 ```
 
-## Custom Space Type (Advanced)
+## Custom Space Type & Workspace-Specific Panels
 
 **Note**: Creating truly custom Space types requires modifying Blender's C++ source code. Addons can only use existing space types. However, you can create the appearance of a custom editor:
 
+### Workspace-Specific Panels
 ```python
 # Best approach: Use existing space with custom context
 class MY_PT_main(Panel):
@@ -333,6 +334,29 @@ class MY_PT_main(Panel):
         # Show only in specific workspace or with specific flag
         return context.workspace.name == "My Custom Editor"
 ```
+
+### Making Properties Panels Workspace-Specific
+Properties panels can be made to appear only in specific workspaces without affecting other workspaces:
+
+```python
+# Base class for workspace-specific panels
+class WorkspacePanel:
+    bl_space_type = 'PROPERTIES'
+    bl_region_type = 'WINDOW'
+    bl_context = "scene"
+    
+    @classmethod
+    def poll(cls, context):
+        # Only show in specific workspace
+        return context.workspace.name == "My Workspace"
+
+# Your panels inherit from this
+class MY_PT_panel(Panel, WorkspacePanel):
+    bl_label = "My Panel"
+    # Panel draws only in "My Workspace"
+```
+
+This allows the Properties editor to show completely different panels per workspace!
 
 ## Tips & Best Practices
 
