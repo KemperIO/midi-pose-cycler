@@ -10,7 +10,7 @@ Opinionated Blender extension for synchronizing pose/action animations to MIDI e
 ### Architecture
 - **Workspace-Specific UI**: Properties panels only appear in "MIDI Pose Cycler" workspace
 - **Three-Column Layout**: Main controls | Poses | MIDI data
-- **8-Pane Workspace**: File Browser, Asset Browser, 3D Viewport, Action Editor, Sequencer, 3x Properties
+- **8-Pane Workspace**: Comprehensive layout for MIDI animation workflow
 
 ## Features
 
@@ -40,7 +40,19 @@ Copy to: `[BLENDER]/4.5/extensions/midi-pose-cycler/`
 ```
 Window menu → MIDI Pose Cycler
 ```
-Creates comprehensive 8-pane workspace
+
+Creates comprehensive workspace with 8 panes:
+
+| Pane             | Location    | Purpose                                  |
+|------------------|-------------|------------------------------------------|
+| File Browser     | left top    | Browse and drag MIDI files              |
+| Asset Browser    | left bottom | Browse and drag pose actions            |
+| 3D Viewport      | middle      | Preview animation                       |
+| Action Editor    | bottom      | View generated keyframes                |
+| Sequencer        | very bottom | Audio timeline reference                |
+| Properties-Main  | right top   | Main controls and settings              |
+| Properties-Poses | right mid   | Pose selection and ordering             |
+| Properties-MIDI  | right bot   | MIDI tracks and notes                   |
 
 ### 2. Prepare Content
 - Create pose actions (frame 0)
@@ -64,16 +76,25 @@ Click "GENERATE ANIMATION" → Creates/updates action with keyframes
 ### File Structure
 ```
 midi-pose-cycler/
-├── __init__.py              # Registration
-├── animation_renderer.py    # Core animation engine
-├── midi_core.py            # MIDI processing (mido)
-├── ui_operators.py         # All operators & properties
-├── ui_properties_panels.py # Workspace-specific panels
-├── workspace_creator.py    # Workspace setup
-├── config_manager.py       # Save/load configs
-├── bpyref.md               # Blender API reference (UPDATE THIS!)
-├── CLAUDE.md               # This documentation
-└── vendor/mido/           # Bundled MIDI library
+├── src/                     # Source code
+│   ├── __init__.py          # Registration
+│   ├── animation_renderer.py # Core animation engine
+│   ├── midi_core.py         # MIDI processing (mido)
+│   ├── ui_operators.py      # All operators & properties
+│   ├── ui_properties_panels.py # Workspace-specific panels
+│   ├── workspace_creator.py # Workspace setup
+│   ├── config_manager.py    # Save/load configs
+│   └── blender_manifest.toml # Addon metadata
+├── test/                    # Test suite
+│   ├── run_tests.py         # Test runner
+│   ├── test_addon_load.py   # Addon registration tests
+│   └── test_workspace.py    # Workspace creation tests
+├── docs/                    # Documentation
+│   ├── CLAUDE.md            # This documentation
+│   ├── bpyref.md            # Blender API reference (UPDATE!)
+│   ├── cli.md               # CLI testing reference
+│   └── README.md            # User documentation
+└── vendor/mido/             # Bundled MIDI library
 ```
 
 ### Data Flow
@@ -157,6 +178,28 @@ duration = frame_limit if use_frame_limit else total_frames
 - **Read-Only Support**: Works from system directories
 - **Workspace Isolation**: Panels only in custom workspace
 - **No Internet Access**: Respects `bpy.app.online_access`
+
+## Testing
+
+### Running Tests
+```bash
+# Run all tests
+python test/run_tests.py
+
+# Run specific test
+python test/run_tests.py workspace
+python test/run_tests.py addon_load
+```
+
+### Test Coverage
+- **addon_load**: Verifies registration of operators, panels, properties
+- **workspace**: Tests workspace creation and layout validation
+
+### Writing New Tests
+1. Create `test/test_yourtest.py` with a `main()` function
+2. Import and run in Blender context
+3. Use stdout for test output
+4. Return True/False or exit with 0/1
 
 ## Development Notes
 
