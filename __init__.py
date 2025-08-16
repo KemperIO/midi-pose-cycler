@@ -85,10 +85,17 @@ def register():
 
 def unregister():
     """Unregister all classes and properties"""
-    # Remove menu entries
-    bpy.types.TOPBAR_MT_window.remove(menu_func)
-    if hasattr(bpy.types, 'VIEW3D_MT_editor_menus'):
-        bpy.types.VIEW3D_MT_editor_menus.remove(menu_func)
+    # Remove menu entries (with error handling)
+    try:
+        bpy.types.TOPBAR_MT_window.remove(menu_func)
+    except:
+        pass
+    
+    try:
+        if hasattr(bpy.types, 'VIEW3D_MT_editor_menus'):
+            bpy.types.VIEW3D_MT_editor_menus.remove(menu_func)
+    except:
+        pass
     
     # Remove properties from scene
     del bpy.types.Scene.midi_pose_props

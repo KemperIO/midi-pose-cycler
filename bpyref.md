@@ -1,4 +1,8 @@
-# Blender Python API Quick Reference for MIDI Pose Cycler
+# Blender Python API Reference (bpyref)
+
+**IMPORTANT**: Always research and update from official docs at https://docs.blender.org/api/4.5/
+When searching docs, respect robots.txt (no 2.79 paths allowed).
+This file should be updated when we learn new things from researching the official API docs.
 
 ## Core Concepts
 

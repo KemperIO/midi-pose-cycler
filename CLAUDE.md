@@ -2,6 +2,8 @@
 
 **Public Repository** | Blender 4.5+ | GPL-3.0
 
+**Developer Note**: Reference `bpyref.md` for Blender API patterns. Update it when learning from https://docs.blender.org/api/4.5/
+
 ## Overview
 Opinionated Blender extension for synchronizing pose/action animations to MIDI events. Provides dedicated workspace with editor-style interface.
 
@@ -12,15 +14,15 @@ Opinionated Blender extension for synchronizing pose/action animations to MIDI e
 
 ## Features
 
-| Feature | Description |
-|---------|------------|
-| **MIDI Analysis** | Multi-track support, automatic track merging by name |
-| **Animation Modes** | POSE (single frame) or ACTION (full animation) |
-| **Pose Management** | Reorderable selection with drag handles |
-| **Cycle Modes** | LOOP, BOOMERANG, RANDOM |
-| **Timing Controls** | Smart (bars/beats) or dumb (frames) |
-| **Note Filtering** | Target specific MIDI notes with nicknames |
-| **Interpolation** | 13 types (CONSTANT, LINEAR, BEZIER, EXPO, etc.) |
+| Feature            | Description                                          |
+|--------------------|------------------------------------------------------|
+| **MIDI Analysis**  | Multi-track support, automatic track merging by name|
+| **Animation Modes**| POSE (single frame) or ACTION (full animation)      |
+| **Pose Management**| Reorderable selection with drag handles             |
+| **Cycle Modes**    | LOOP, BOOMERANG, RANDOM                             |
+| **Timing Controls**| Smart (bars/beats) or dumb (frames)                 |
+| **Note Filtering** | Target specific MIDI notes with nicknames           |
+| **Interpolation**  | 13 types (CONSTANT, LINEAR, BEZIER, EXPO, etc.)     |
 
 ## Installation
 
@@ -46,13 +48,13 @@ Creates comprehensive 8-pane workspace
 
 ### 3. Load & Configure
 
-| Step | Action |
-|------|--------|
-| Load MIDI | Drag from File Browser or use Load button |
-| Select Track | Click track name (auto-analyzes) |
-| Choose Poses | Select & reorder with arrows |
-| Set Mode | POSE (single frame) or ACTION (full) |
-| Configure Timing | BPM, bars/beats or frame numbers |
+| Step         | Action                                    |
+|--------------|-------------------------------------------|
+| Load MIDI    | Drag from File Browser or use Load button|
+| Select Track | Click track name (auto-analyzes)         |
+| Choose Poses | Select & reorder with arrows             |
+| Set Mode     | POSE (single frame) or ACTION (full)     |
+| Config Timing| BPM, bars/beats or frame numbers         |
 
 ### 4. Generate
 Click "GENERATE ANIMATION" → Creates/updates action with keyframes
@@ -69,6 +71,8 @@ midi-pose-cycler/
 ├── ui_properties_panels.py # Workspace-specific panels
 ├── workspace_creator.py    # Workspace setup
 ├── config_manager.py       # Save/load configs
+├── bpyref.md               # Blender API reference (UPDATE THIS!)
+├── CLAUDE.md               # This documentation
 └── vendor/mido/           # Bundled MIDI library
 ```
 
@@ -81,17 +85,17 @@ MIDI File → Track Analysis → Note Events → Frame Timing → Keyframe Gener
 
 ### Key Properties
 
-| Property | Type | Default | Description |
-|----------|------|---------|-------------|
-| `animation_mode` | Enum | POSE | POSE or ACTION mode |
-| `pose_cycle_mode` | Enum | LOOP | LOOP/BOOMERANG/RANDOM |
-| `frames_to_hold` | Int | 3 | Hold duration per pose |
-| `interpolation_type` | Enum | EXPO | Transition type |
-| `bpm` | Float | 120 | Beats per minute |
-| `beats_per_bar` | Int | 4 | Time signature numerator |
-| `use_smart_timing` | Bool | False | Musical vs frame timing |
-| `midi_start_frame` | Int | 1 | Animation start frame |
-| `skip_keyframe_warning` | Bool | False | Suppress overwrite dialog |
+| Property              | Type  | Default | Description                      |
+|-----------------------|-------|---------|----------------------------------|
+| `animation_mode`      | Enum  | POSE    | POSE or ACTION mode              |
+| `pose_cycle_mode`     | Enum  | LOOP    | LOOP/BOOMERANG/RANDOM            |
+| `frames_to_hold`      | Int   | 3       | Hold duration per pose           |
+| `interpolation_type`  | Enum  | EXPO    | Transition type                  |
+| `bpm`                 | Float | 120     | Beats per minute                 |
+| `beats_per_bar`       | Int   | 4       | Time signature numerator         |
+| `use_smart_timing`    | Bool  | False   | Musical vs frame timing          |
+| `midi_start_frame`    | Int   | 1       | Animation start frame            |
+| `skip_keyframe_warning`| Bool  | False   | Suppress overwrite dialog        |
 
 ### Timing Calculation
 ```python
@@ -107,14 +111,14 @@ duration = frame_limit if use_frame_limit else total_frames
 
 ## Operators Reference
 
-| Operator | ID | Function |
-|----------|-----|----------|
-| Load MIDI | `midipose.load_midi` | Import & analyze MIDI |
-| Select Track | `midipose.select_track` | Choose & analyze track |
-| Refresh Poses | `midipose.refresh_poses` | Scan project actions |
-| Move Pose | `midipose.move_pose` | Reorder selection |
-| Render Animation | `midipose.render_animation` | Generate keyframes |
-| Create Workspace | `midipose.create_workspace` | Setup UI workspace |
+| Operator          | ID                          | Function             |
+|-------------------|-----------------------------|----------------------|
+| Load MIDI         | `midipose.load_midi`        | Import & analyze MIDI|
+| Select Track      | `midipose.select_track`     | Choose & analyze track|
+| Refresh Poses     | `midipose.refresh_poses`    | Scan project actions |
+| Move Pose         | `midipose.move_pose`        | Reorder selection    |
+| Render Animation  | `midipose.render_animation` | Generate keyframes   |
+| Create Workspace  | `midipose.create_workspace` | Setup UI workspace   |
 
 ## Configuration Management
 - **Save/Load**: Store complete setup as scene data
@@ -142,11 +146,11 @@ duration = frame_limit if use_frame_limit else total_frames
 
 ## Workspace Panel Organization
 
-| Panel | Content |
-|-------|---------|
-| **Main** | MIDI file, action settings, timing, configs |
-| **Poses** | Selection, ordering, cycle mode |
-| **MIDI** | Tracks, notes, filtering |
+| Panel            | Content                                   |
+|------------------|-------------------------------------------|
+| **Main**         | MIDI file, action settings, timing, configs|
+| **Poses**        | Selection, ordering, cycle mode          |
+| **MIDI**         | Tracks, notes, filtering                 |
 
 ## Blender Compliance
 - **No External Dependencies**: mido bundled in vendor/
