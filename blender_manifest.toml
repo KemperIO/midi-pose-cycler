@@ -1,0 +1,22 @@
+schema_version = "1.0.0"
+
+id = "midi_pose_cycler"
+name = "MIDI Pose Cycler"
+tagline = "Animate a loop of poses to MIDI events"
+type = "add-on"
+version = "0.5.0"
+
+blender_version_min = "4.5.0"
+maintainer = "Voldemort Project"
+license = ["SPDX:GPL-3.0"]
+
+tags = ["Animation", "User Interface"]
+
+[build]
+paths_exclude_pattern = [
+    "__pycache__/",
+    ".*",
+    "*.zip",
+    "*.pyc",
+    "*.pyo"
+]
