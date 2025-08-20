@@ -5,12 +5,13 @@
 **Developer Note**: Reference `bpyref.md` for Blender API patterns. Update it when learning from https://docs.blender.org/api/4.5/
 
 ## Overview
-Opinionated Blender extension for synchronizing pose/action animations to MIDI events. Provides dedicated workspace with editor-style interface.
+Opinionated Blender extension for synchronizing pose/action animations to MIDI events. Provides both node-based visual workflow and traditional panel interface.
 
 ### Architecture
-- **Workspace-Specific UI**: Properties panels only appear in "MIDI Pose Cycler" workspace
-- **Three-Column Layout**: Main controls | Poses | MIDI data
-- **8-Pane Workspace**: Comprehensive layout for MIDI animation workflow
+- **Node-Based System**: Visual node tree for MIDI animation pipeline
+- **Custom Node Types**: MIDI input, filtering, pose sequencing, timing control
+- **Dual Interface**: Node editor workflow or traditional properties panels
+- **Workspace Layouts**: Optimized layouts for both approaches
 
 ## Features
 
@@ -34,14 +35,51 @@ Opinionated Blender extension for synchronizing pose/action animations to MIDI e
 ### Dev Install
 Copy to: `[BLENDER]/4.5/extensions/midi-pose-cycler/`
 
-## Usage Workflow
+## Usage Workflows
 
-### 1. Setup Workspace
+### Node-Based Workflow (Visual)
+
+#### 1. Setup Node Workspace
+```
+Window menu → MIDI Pose Nodes
+```
+
+Creates node-based workspace:
+
+| Pane          | Location     | Purpose                          |
+|---------------|--------------|----------------------------------|
+| File Browser  | top left     | Drag MIDI files                  |
+| Asset Browser | bot left     | Drag pose actions                |
+| Node Editor   | middle       | Visual workflow canvas           |
+| 3D Viewport   | top right    | Preview animation                |
+| Outliner      | bot right    | Rig selection                    |
+| Action Editor | bottom       | View generated keyframes         |
+| Sequencer     | very bottom  | Audio timeline reference         |
+
+#### 2. Build Node Tree
+Connect nodes in sequence:
+```
+[MIDI Input] → [Track Selector] → [Note Filter] → [Timing] → [Animation Output]
+                                                       ↑
+[Pose Input] → [Pose Sequence] ─────────────────────┘
+```
+
+#### 3. Configure & Generate
+- Load MIDI file in MIDI Input node
+- Select track in Track Selector
+- Set filter mode (ALL/Include/Exclude/Range)
+- Configure poses and cycle mode
+- Set timing parameters
+- Click "GENERATE ANIMATION"
+
+### Traditional Panel Workflow
+
+#### 1. Setup Panel Workspace
 ```
 Window menu → MIDI Pose Cycler
 ```
 
-Creates comprehensive workspace with 8 panes:
+Creates panel-based workspace with 8 panes:
 
 | Pane             | Location    | Purpose                                  |
 |------------------|-------------|------------------------------------------|
@@ -71,6 +109,43 @@ Creates comprehensive workspace with 8 panes:
 ### 4. Generate
 Click "GENERATE ANIMATION" → Creates/updates action with keyframes
 
+## Node Types Reference
+
+### Input Nodes
+
+| Node | Purpose | Inputs | Outputs |
+|------|---------|--------|---------|
+| **MIDI Input** | Load & analyze MIDI file | - | MIDI Data |
+| **Pose Input** | Select poses from project | - | Pose Data |
+
+### Processing Nodes
+
+| Node | Purpose | Inputs | Outputs |
+|------|---------|--------|---------|
+| **Track Selector** | Choose MIDI track | MIDI Data | Track Data |
+| **Note Filter** | Filter notes (ALL/Include/Exclude/Range) | Track Data | Filtered Data |
+| **Pose Sequence** | Order & cycle poses | Pose Data | Sequence |
+| **Timing** | Configure hold, interpolation, BPM | MIDI + Poses | Animation |
+
+### Output Node
+
+| Node | Purpose | Inputs | Outputs |
+|------|---------|--------|---------|
+| **Animation Output** | Generate keyframes | Animation | Action |
+
+### Node Properties
+
+#### Note Filter Modes
+- **ALL**: Use all notes (default)
+- **Include**: Only specified notes
+- **Exclude**: All except specified notes  
+- **Range**: Note range (min/max)
+
+#### Pose Cycle Modes
+- **Loop**: Sequential cycling
+- **Random**: Random selection
+- **Ping Pong**: Forward then backward
+
 ## Technical Implementation
 
 ### File Structure
@@ -80,9 +155,12 @@ midi-pose-cycler/
 │   ├── __init__.py          # Registration
 │   ├── animation_renderer.py # Core animation engine
 │   ├── midi_core.py         # MIDI processing (mido)
-│   ├── ui_operators.py      # All operators & properties
+│   ├── node_tree.py         # Custom node tree & nodes
+│   ├── node_operators.py    # Node-related operators
+│   ├── ui_operators.py      # Panel operators & properties
 │   ├── ui_properties_panels.py # Workspace-specific panels
-│   ├── workspace_creator.py # Workspace setup
+│   ├── workspace_creator.py # Panel workspace setup
+│   ├── workspace_node_based.py # Node workspace setup
 │   ├── config_manager.py    # Save/load configs
 │   └── blender_manifest.toml # Addon metadata
 ├── test/                    # Test suite

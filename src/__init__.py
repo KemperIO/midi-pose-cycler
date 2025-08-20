@@ -19,6 +19,9 @@ from . import config_manager
 from . import ui_operators
 from . import workspace_creator
 from . import ui_properties_panels
+from . import node_tree
+from . import node_operators
+from . import workspace_node_based
 
 # Reload modules for development (helps with updates)
 importlib.reload(midi_core)
@@ -27,6 +30,9 @@ importlib.reload(config_manager)
 importlib.reload(ui_operators)
 importlib.reload(workspace_creator)
 importlib.reload(ui_properties_panels)
+importlib.reload(node_tree)
+importlib.reload(node_operators)
+importlib.reload(workspace_node_based)
 
 # Classes to register
 classes = [
@@ -55,6 +61,7 @@ classes = [
     # Workspace Creator
     workspace_creator.MIDIPOSE_OT_create_workspace,
     workspace_creator.MIDIPOSE_OT_setup_drag_drop,
+    workspace_node_based.MIDIPOSE_OT_create_node_workspace,
     
     # Properties Panels
     ui_properties_panels.MIDIPOSE_PT_properties_main,
@@ -63,13 +70,21 @@ classes = [
 ]
 
 def menu_func(self, context):
-    """Add menu item to switch to MIDI Pose workspace"""
+    """Add menu items for MIDI Pose workspaces"""
     self.layout.operator("midipose.create_workspace", 
                         text="MIDI Pose Cycler",
                         icon='FILE_SOUND')
+    self.layout.operator("midipose.create_node_workspace",
+                        text="MIDI Pose Nodes",
+                        icon='NODETREE')
 
 def register():
     """Register all classes and properties"""
+    # Register node system first
+    node_tree.register()
+    node_operators.register()
+    
+    # Register other classes
     for cls in classes:
         bpy.utils.register_class(cls)
     
@@ -103,6 +118,10 @@ def unregister():
     # Unregister classes in reverse order
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
+    
+    # Unregister node system
+    node_operators.unregister()
+    node_tree.unregister()
     
     print("MIDI Pose Cycler addon unregistered")
 
