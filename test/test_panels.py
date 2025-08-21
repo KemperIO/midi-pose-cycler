@@ -31,11 +31,22 @@ def main():
         print(f"✗ Failed to register: {e}")
         return False
     
-    # Check panels exist
+    # Check panels exist - 3 tab structure
     panel_ids = [
-        'MIDIPOSE_PT_properties_main',
-        'MIDIPOSE_PT_properties_poses', 
-        'MIDIPOSE_PT_properties_midi'
+        # MPC-Run tab
+        'MIDIPOSE_PT_run_main',
+        'MIDIPOSE_PT_run_action',
+        'MIDIPOSE_PT_run_timing',
+        'MIDIPOSE_PT_run_preview',
+        'MIDIPOSE_PT_run_config',
+        # MPC-Pose tab
+        'MIDIPOSE_PT_pose_selection',
+        'MIDIPOSE_PT_pose_order',
+        'MIDIPOSE_PT_pose_cycle',
+        # MPC-MIDI tab
+        'MIDIPOSE_PT_midi_file',
+        'MIDIPOSE_PT_midi_tracks',
+        'MIDIPOSE_PT_midi_notes'
     ]
     
     for panel_id in panel_ids:

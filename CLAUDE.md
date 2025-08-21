@@ -281,26 +281,59 @@ duration = frame_limit if use_frame_limit else total_frames
 
 ## Testing
 
-### Running Tests
-```bash
-# Run all tests
-python test/run_tests.py
+### ALWAYS RUN TESTS AFTER CODE CHANGES
+When making changes, write straightforward tests to verify functionality and prevent regressions.
 
-# Run specific test
-python test/run_tests.py workspace
-python test/run_tests.py addon_load
+### Running Tests (Use Wrapper!)
+```bash
+# CORRECT - Use the wrapper
+python test/run_test_wrapper.py test_name
+
+# Examples:
+python test/run_test_wrapper.py test_no_errors
+python test/run_test_wrapper.py test_3tab_layout
+python test/run_test_wrapper.py test_multitrack
+python test/run_test_wrapper.py test_midi_operator
 ```
 
-### Test Coverage
-- **test_no_errors**: Verifies addon loads without console errors (RUN THIS ALWAYS!)
-- **addon_load**: Verifies registration of operators, panels, properties
-- **workspace**: Tests workspace creation and layout validation
+### Current Test Coverage
+
+| Test | Purpose | What it Verifies |
+|------|---------|------------------|
+| **test_no_errors** | Core addon health | ✓ Addon loads without console errors<br>✓ All panels registered<br>✓ Properties initialized |
+| **test_3tab_layout** | UI structure | ✓ All 3 tabs exist (MPC-Run, MPC-Pose, MPC-MIDI)<br>✓ All panels in correct tabs<br>✓ bl_category set correctly |
+| **test_multitrack** | Multi-track selection | ✓ Multiple tracks can be selected<br>✓ Per-track note filters work<br>✓ Filter operators function |
+| **test_midi_operator** | User workflow | ✓ MIDI file loads via operator<br>✓ Tracks populate correctly<br>✓ Note selection works |
+| **test_midi_simple** | Core MIDI | ✓ mido library imports<br>✓ MIDI file analysis<br>✓ Track detection |
 
 ### Writing New Tests
-1. Create `test/test_yourtest.py` with a `main()` function
-2. Import and run in Blender context
-3. Use stdout for test output
-4. Return True/False or exit with 0/1
+1. Create `test/test_NAME.py` with `main()` function
+2. Return True for pass, False for fail
+3. Use print statements for feedback
+4. Test one specific feature per file
+5. Keep tests fast and non-flaky
+
+### Deprecated Code (No Longer Used)
+
+| File/Feature | Status | Reason |
+|--------------|--------|--------|
+| **node_tree.py** | DEPRECATED | Switched to 3-tab N-panel UI |
+| **node_operators.py** | DEPRECATED | Node workflow removed |
+| **workspace_node_based.py** | DEPRECATED | No node workspace needed |
+| **ui_properties_panels.py** | REPLACED | Replaced by ui_panels_*.py |
+| **Single track selection** | REMOVED | Now supports multi-track |
+| **Global note filtering** | REMOVED | Per-track filtering instead |
+
+### Active Core Components
+
+| Component | Purpose |
+|-----------|---------|
+| **ui_panels_run.py** | MPC-Run tab - main execution |
+| **ui_panels_pose.py** | MPC-Pose tab - pose management |
+| **ui_panels_midi.py** | MPC-MIDI tab - MIDI/track handling |
+| **ui_operators.py** | All operators and properties |
+| **midi_core.py** | MIDI file analysis with mido |
+| **animation_renderer.py** | Keyframe generation |
 
 ## Development Notes
 

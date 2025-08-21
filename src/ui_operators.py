@@ -215,19 +215,40 @@ class MIDIPOSE_OT_render_animation(Operator):
         scene = context.scene
         props = scene.midi_pose_props
         
-        # Validation
+        # Detailed validation with console output
+        errors = []
+        
         if not props.midi_file:
+            errors.append("No MIDI file loaded - use MPC-MIDI tab to load a file")
             print("ERROR: No MIDI file loaded")
-            sys.stdout.flush()
-            self.report({'ERROR'}, "No MIDI file loaded")
-            return {'CANCELLED'}
+            print("  Solution: Go to MPC-MIDI tab and click 'Load MIDI File'")
         
         # Get selected tracks (multi-track support)
         selected_tracks = [t for t in props.track_items if t.selected]
         if not selected_tracks:
+            errors.append("No tracks selected - select at least one track in MPC-MIDI tab")
             print("ERROR: No tracks selected")
+            print("  Solution: Go to MPC-MIDI tab and check at least one track")
+            if props.track_items:
+                print(f"  Available tracks: {[t.name for t in props.track_items]}")
+        
+        # Check for poses
+        selected_poses = [p for p in props.pose_items if p.selected]
+        if not selected_poses:
+            errors.append("No poses selected - select poses in MPC-Pose tab")
+            print("ERROR: No poses selected")
+            print("  Solution: Go to MPC-Pose tab and select poses to animate")
+        
+        if errors:
+            print("\n" + "="*60)
+            print("GENERATION FAILED - Missing Requirements:")
+            for i, error in enumerate(errors, 1):
+                print(f"  {i}. {error}")
+            print("="*60 + "\n")
             sys.stdout.flush()
-            self.report({'ERROR'}, "No tracks selected")
+            
+            # Report first error to UI
+            self.report({'ERROR'}, errors[0])
             return {'CANCELLED'}
         
         if not context.active_object:

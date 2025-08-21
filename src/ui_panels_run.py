@@ -38,15 +38,34 @@ class MIDIPOSE_PT_run_main(Panel, MidiPosePanel):
         row = layout.row()
         row.scale_y = 2.0
         
+        # Check what's missing for generation
+        selected_tracks = [t for t in props.track_items if t.selected]
+        selected_poses = [p for p in props.pose_items if p.selected]
+        
+        # Build status message
+        missing = []
+        if not props.midi_file:
+            missing.append("MIDI file")
+        if not selected_tracks:
+            missing.append("tracks")
+        if not selected_poses:
+            missing.append("poses")
+        
         # Enable button only if we have required data
-        can_generate = (bool(props.midi_file) and 
-                       bool(props.selected_track) and 
-                       any(p.selected for p in props.pose_items))
+        can_generate = len(missing) == 0
         
         row.enabled = can_generate
-        row.operator("midipose.render_animation", 
-                    text="GENERATE ANIMATION", 
-                    icon='PLAY')
+        op = row.operator("midipose.render_animation", 
+                         text="GENERATE ANIMATION", 
+                         icon='PLAY')
+        
+        # Show tooltip explaining what's missing
+        if not can_generate:
+            row.alert = True
+            if missing:
+                tooltip = "Missing: " + ", ".join(missing)
+            else:
+                tooltip = "Ready to generate"
         
         # Status info
         selected_tracks = [t for t in props.track_items if t.selected]

@@ -110,18 +110,18 @@ class MIDIPOSE_PT_midi_tracks(Panel, MidiPosePanel):
         for track in props.track_items:
             # Main row for track
             col = box.column()
-            row = col.row(align=True)
+            row = col.row(align=False)  # Don't align tightly
             
-            # Checkbox for selection
-            row.prop(track, "selected", text="")
+            # Checkbox for selection - fixed width
+            sub = row.row()
+            sub.alignment = 'LEFT'
+            sub.scale_x = 0.3  # Smaller checkbox area
+            sub.prop(track, "selected", text="")
             
-            # Track info
-            sub_row = row.row()
-            sub_row.active = track.selected
-            sub_row.alignment = 'LEFT'
-            
-            # Track name
-            sub = sub_row.row()
+            # Track name - separate column with proper spacing
+            sub = row.row()
+            sub.active = track.selected
+            sub.alignment = 'LEFT'
             sub.scale_x = 1.5
             sub.label(text=track.name)
             
@@ -201,75 +201,61 @@ class MIDIPOSE_PT_midi_notes(Panel, MidiPosePanel):
         layout = self.layout
         props = context.scene.midi_pose_props
         
-        if not props.selected_track:
+        # Get selected tracks
+        selected_tracks = [t for t in props.track_items if t.selected]
+        
+        if not selected_tracks:
             box = layout.box()
-            box.label(text="Select a track first", icon='INFO')
+            box.label(text="No tracks selected", icon='INFO')
+            box.label(text="Select tracks in the Track Selection panel above")
             return
         
-        if not props.note_items:
+        # Show note filters for each selected track
+        for track in selected_tracks:
             box = layout.box()
-            box.label(text="No notes in selected track", icon='INFO')
-            return
-        
-        layout.active = props.filter_notes
-        
-        if props.filter_notes:
-            # Note Selection - Grid Flow
-            box = layout.box()
-            box.label(text="Select Notes:", icon='FILTER')
             
-            # Quick selection
-            row = box.row(align=True)
-            row.operator("midipose.select_all_notes", text="All")
-            row.operator("midipose.deselect_all_notes", text="None")
-            row.operator("midipose.invert_note_selection", text="Invert")
+            # Track header with filter toggle
+            row = box.row()
+            row.label(text=f"{track.name}:", icon='NLA_PUSHDOWN')
+            row.prop(track, "filter_notes", text="Filter", toggle=True)
             
-            box.separator()
-            
-            # Use grid flow for note selection
-            grid = box.grid_flow(columns=2, align=True)
-            
-            # Show notes with checkbox and info
-            display_limit = 30
-            for i, note in enumerate(props.note_items):
-                if i >= display_limit:
-                    break
+            if track.filter_notes and track.note_filters:
+                # Quick selection buttons
+                row = box.row(align=True)
+                row.scale_y = 0.8
                 
-                row = grid.row(align=True)
-                row.prop(note, "selected", text="")
+                op = row.operator("midipose.select_all_track_notes", text="All")
+                op.track_name = track.name
                 
-                # Note info with nickname if present
-                if note.nickname:
-                    row.label(text=f"{note.note_name} ({note.nickname}) [{note.count}]")
-                else:
-                    row.label(text=f"{note.note_name} [{note.count}]")
-            
-            if len(props.note_items) > display_limit:
-                box.label(text=f"... and {len(props.note_items) - display_limit} more notes")
-            
-            # Nickname editing in separate section
-            if any(n.selected for n in props.note_items):
-                box.separator()
-                nick_box = box.box()
-                nick_box.label(text="Edit Nicknames:", icon='OUTLINER_DATA_GP_LAYER')
+                op = row.operator("midipose.deselect_all_track_notes", text="None")
+                op.track_name = track.name
                 
-                # Only show selected notes for nickname editing
-                selected_notes = [n for n in props.note_items if n.selected]
-                for note in selected_notes[:10]:  # Limit to 10 for performance
-                    row = nick_box.row(align=True)
-                    row.label(text=f"{note.note_name}:")
-                    row.prop(note, "nickname", text="")
+                op = row.operator("midipose.invert_track_notes", text="Invert")
+                op.track_name = track.name
                 
-                if len(selected_notes) > 10:
-                    nick_box.label(text=f"... and {len(selected_notes) - 10} more selected notes")
-            
-            # Selected count
-            selected_count = sum(1 for n in props.note_items if n.selected)
-            layout.label(text=f"Using {selected_count} of {len(props.note_items)} notes")
-        else:
-            box = layout.box()
-            box.label(text="Using all notes from track", icon='CHECKBOX_HLT')
-            box.label(text="Enable filter to select specific notes")
+                # Note selection grid
+                grid = box.grid_flow(columns=2, align=True)
+                
+                display_limit = 12
+                for i, note_filter in enumerate(track.note_filters):
+                    if i >= display_limit:
+                        break
+                    
+                    row = grid.row(align=True)
+                    row.prop(note_filter, "selected", text="")
+                    row.label(text=note_filter.note_name)
+                
+                if len(track.note_filters) > display_limit:
+                    box.label(text=f"... and {len(track.note_filters) - display_limit} more notes")
+                
+                # Summary
+                selected_notes = sum(1 for n in track.note_filters if n.selected)
+                box.label(text=f"Using {selected_notes}/{len(track.note_filters)} notes")
+            else:
+                # Not filtering
+                info = box.row()
+                info.scale_y = 0.8
+                info.label(text=f"Using all {track.note_count} notes", icon='CHECKBOX_HLT')
 
 
 # Registration
