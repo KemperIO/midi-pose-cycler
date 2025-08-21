@@ -126,11 +126,13 @@ class MIDIPOSE_PT_midi_tracks(Panel, MidiPosePanel):
             sub.label(text=track.name)
             
             # Note count
+            note_row = row.row()
+            note_row.alignment = 'RIGHT'
             if track.filter_notes:
                 selected_notes = sum(1 for n in track.note_filters if n.selected)
-                sub_row.label(text=f"{selected_notes}/{track.note_count} notes")
+                note_row.label(text=f"{selected_notes}/{track.note_count} notes")
             else:
-                sub_row.label(text=f"{track.note_count} notes")
+                note_row.label(text=f"{track.note_count} notes")
             
             # Note filter toggle
             if track.selected:
