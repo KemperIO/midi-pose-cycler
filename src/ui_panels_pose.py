@@ -25,9 +25,7 @@ class MIDIPOSE_PT_pose_selection(Panel, MidiPosePanel):
     bl_order = 0
     
     def draw_header(self, context):
-        row = self.layout.row(align=True)
-        row.label(text="", icon='ARMATURE_DATA')
-        row.operator("midipose.refresh_poses", text="", icon='FILE_REFRESH', emboss=False)
+        self.layout.label(text="", icon='ARMATURE_DATA')
     
     def draw(self, context):
         layout = self.layout
@@ -54,7 +52,20 @@ class MIDIPOSE_PT_pose_selection(Panel, MidiPosePanel):
         
         # Pose Selection - Grid Flow
         box = layout.box()
-        box.label(text="Available Poses:", icon='CHECKBOX_HLT')
+        
+        # Header row with label, warning, and refresh button
+        header_row = box.row()
+        header_row.label(text="Available Poses:")
+        
+        # Right side with warning and refresh
+        right_row = header_row.row()
+        right_row.alignment = 'RIGHT'
+        
+        # Warning icon and text
+        right_row.label(text="", icon='ERROR')
+        right_row.label(text="Local only")
+        # Refresh button
+        right_row.operator("midipose.refresh_poses", text="", icon='FILE_REFRESH')
         
         # Use grid flow for pose selection
         grid = box.grid_flow(columns=2, align=True)

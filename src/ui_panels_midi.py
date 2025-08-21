@@ -159,96 +159,95 @@ class MIDIPOSE_PT_midi_notes(Panel, MidiPosePanel):
             box.label(text="Select tracks in the Track Selection panel above")
             return
         
-        # Show collapsible note filters for each selected track
+        # Show tone filters for each selected track
         for track in selected_tracks:
             box = layout.box()
             
-            # Track header with collapsible filter toggle
+            # Track header row
             row = box.row(align=True)
-            
-            # Collapse/expand icon - use toggle property
-            icon = 'TRIA_DOWN' if track.filter_notes else 'TRIA_RIGHT'
-            row.prop(track, "filter_notes", text="", icon=icon, emboss=False, toggle=True)
             
             # Track name and info
             if track.is_dynamic:
                 row.label(text=f"{track.name}", icon='TIME')
-            else:
-                row.label(text=f"{track.name}", icon='NLA_PUSHDOWN')
-            
-            # Note count summary
-            if track.is_dynamic:
                 # Show dynamic track settings
                 props = context.scene.midi_pose_props
                 if props.dynamic_interval_type == 'BEATS':
                     row.label(text=f"(Every {props.dynamic_interval_beats} beats)")
                 else:
                     row.label(text=f"(Every {props.dynamic_interval_bars} bars)")
-            elif track.filter_notes and track.note_filters:
-                selected_notes = sum(1 for n in track.note_filters if n.selected)
-                row.label(text=f"({selected_notes}/{len(track.note_filters)} notes)")
             else:
-                row.label(text=f"({track.note_count} notes)")
-            
-            # Collapsible content
-            if track.is_dynamic and track.filter_notes:
-                # Show dynamic track configuration
-                filter_box = box.box()
-                filter_box.scale_y = 0.95
-                
-                props = context.scene.midi_pose_props
-                
-                # Interval type selector
-                row = filter_box.row()
-                row.label(text="Generate event every:")
-                row.prop(props, "dynamic_interval_type", text="")
-                
-                # Interval amount
-                if props.dynamic_interval_type == 'BEATS':
-                    filter_box.prop(props, "dynamic_interval_beats", text="Beats")
+                row.label(text=f"{track.name}", icon='NLA_PUSHDOWN')
+                # Show note count and selection status
+                if track.note_filters:
+                    selected_notes = sum(1 for n in track.note_filters if n.selected)
+                    row.label(text=f"({selected_notes}/{len(track.note_filters)} tones)")
                 else:
-                    filter_box.prop(props, "dynamic_interval_bars", text="Bars")
-                
-                # Info
-                filter_box.separator(factor=0.5)
-                info = filter_box.row()
-                info.scale_y = 0.8
-                info.label(text=f"BPM: {props.bpm}", icon='TIME')
-                
-            elif track.filter_notes and track.note_filters:
-                # Inner box for filter content
-                filter_box = box.box()
-                filter_box.scale_y = 0.95
-                
-                # Quick selection buttons
-                button_row = filter_box.row(align=True)
-                button_row.scale_y = 0.9
-                
-                op = button_row.operator("midipose.select_all_track_notes", text="All")
-                op.track_name = track.name
-                
-                op = button_row.operator("midipose.deselect_all_track_notes", text="None")
-                op.track_name = track.name
-                
-                op = button_row.operator("midipose.invert_track_notes", text="Invert")
-                op.track_name = track.name
-                
-                filter_box.separator(factor=0.5)
-                
-                # Tone selection grid - show tone name with MIDI number
-                note_grid = filter_box.grid_flow(columns=2, align=True)
-                
-                display_limit = 12
-                for i, note_filter in enumerate(track.note_filters):
-                    if i >= display_limit:
-                        break
+                    row.label(text=f"({track.note_count} notes)")
+            
+            # Enable/disable filtering checkbox
+            row.prop(track, "filter_notes", text="Filter")
+            
+            # Show content based on track type
+            if track.is_dynamic:
+                # Dynamic track configuration
+                if track.filter_notes:
+                    filter_box = box.box()
+                    filter_box.scale_y = 0.95
                     
-                    # Format: "C3 (60)" - tone name with MIDI number
-                    label = f"{note_filter.note_name} ({note_filter.note_number})"
-                    note_grid.prop(note_filter, "selected", text=label)
-                
-                if len(track.note_filters) > display_limit:
-                    filter_box.label(text=f"... and {len(track.note_filters) - display_limit} more notes", icon='INFO')
+                    props = context.scene.midi_pose_props
+                    
+                    # Interval type selector
+                    row = filter_box.row()
+                    row.label(text="Generate event every:")
+                    row.prop(props, "dynamic_interval_type", text="")
+                    
+                    # Interval amount
+                    if props.dynamic_interval_type == 'BEATS':
+                        filter_box.prop(props, "dynamic_interval_beats", text="Beats")
+                    else:
+                        filter_box.prop(props, "dynamic_interval_bars", text="Bars")
+                    
+                    # Info
+                    filter_box.separator(factor=0.5)
+                    info = filter_box.row()
+                    info.scale_y = 0.8
+                    info.label(text=f"BPM: {props.bpm}", icon='TIME')
+                    
+            elif track.note_filters:  # Regular track with tones
+                if track.filter_notes:
+                    # Inner box for filter content
+                    filter_box = box.box()
+                    filter_box.scale_y = 0.95
+                    
+                    # Quick selection buttons
+                    button_row = filter_box.row(align=True)
+                    button_row.scale_y = 0.9
+                    
+                    op = button_row.operator("midipose.select_all_track_notes", text="All")
+                    op.track_name = track.name
+                    
+                    op = button_row.operator("midipose.deselect_all_track_notes", text="None")
+                    op.track_name = track.name
+                    
+                    op = button_row.operator("midipose.invert_track_notes", text="Invert")
+                    op.track_name = track.name
+                    
+                    filter_box.separator(factor=0.5)
+                    
+                    # Tone selection grid - show tone name with MIDI number
+                    note_grid = filter_box.grid_flow(columns=2, align=True)
+                    
+                    display_limit = 12
+                    for i, note_filter in enumerate(track.note_filters):
+                        if i >= display_limit:
+                            break
+                        
+                        # Format: "C3 (60)" - tone name with MIDI number
+                        label = f"{note_filter.note_name} ({note_filter.note_number})"
+                        note_grid.prop(note_filter, "selected", text=label)
+                    
+                    if len(track.note_filters) > display_limit:
+                        filter_box.label(text=f"... and {len(track.note_filters) - display_limit} more tones", icon='INFO')
 
 
 # Registration
