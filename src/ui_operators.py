@@ -252,6 +252,27 @@ class MIDIPOSE_OT_render_animation(Operator):
             print(f"ERROR: Only {len(selected_poses)} pose selected")
             print("  Solution: Select at least 2 poses for animation cycling")
         
+        # Check for armature
+        obj = context.active_object
+        has_armature = False
+        if obj and obj.type == 'ARMATURE':
+            has_armature = True
+        else:
+            # Check selected objects
+            armatures = [o for o in context.selected_objects if o.type == 'ARMATURE']
+            if armatures:
+                has_armature = True
+            else:
+                # Check scene for any armature
+                armatures = [o for o in bpy.data.objects if o.type == 'ARMATURE']
+                if armatures:
+                    has_armature = True
+        
+        if not has_armature:
+            errors.append("No armature found - create or select an armature")
+            print("ERROR: No armature in scene")
+            print("  Solution: Add an armature (Shift+A > Armature) or select existing one")
+        
         if errors:
             print("\n" + "="*60)
             print("GENERATION FAILED - Missing Requirements:")
@@ -415,17 +436,28 @@ class MIDIPOSE_OT_render_animation(Operator):
             frames_per_beat = (60.0 / props.bpm) * fps
             frames_per_bar = frames_per_beat * props.beats_per_bar
             
+            # Sort pose_mapping by frame for proper display
+            sorted_mapping = sorted(pose_mapping, key=lambda x: x[0])
+            
             # Print table header
             print(f"\n{'Frame':<10} {'Bar:Beat':<12} {'Pose':<30} {'Track':<20}")
             print("-" * 72)
             
             # Print pose assignments
-            for frame, pose_name in pose_mapping:
-                # Calculate bar and beat
-                frame_offset = frame - 1
-                bar = int(frame_offset / frames_per_bar) + 1
-                remaining_frames = frame_offset % frames_per_bar
-                beat = int(remaining_frames / frames_per_beat) + 1
+            for frame, pose_name in sorted_mapping:
+                # Blender frames are 1-indexed, so frame 1 = bar 1, beat 1
+                # Calculate bar and beat based on actual frame position
+                if frame < 1:
+                    # Handle case where frame is 0 or negative (shouldn't happen but be safe)
+                    bar = 1
+                    beat = 1
+                else:
+                    # Frame 1 = first frame of bar 1, beat 1
+                    # So we need frame - 1 to get the offset from start
+                    frame_offset = frame - 1
+                    bar = int(frame_offset / frames_per_bar) + 1
+                    remaining_frames = frame_offset % frames_per_bar
+                    beat = int(remaining_frames / frames_per_beat) + 1
                 
                 # Format bar:beat
                 bar_beat = f"{bar}:{beat}"

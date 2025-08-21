@@ -96,8 +96,7 @@ class MIDIPOSE_PT_run_output(Panel, MidiPosePanel):
     bl_label = "Output"
     bl_idname = "MIDIPOSE_PT_run_output"
     bl_category = "MPC-Run"
-    bl_parent_id = "MIDIPOSE_PT_run_main"
-    bl_options = {'DEFAULT_CLOSED'}
+    bl_order = 1
     
     def draw(self, context):
         layout = self.layout
@@ -120,20 +119,26 @@ class MIDIPOSE_PT_run_output(Panel, MidiPosePanel):
         else:
             row.label(text="Enter name for new action", icon='INFO')
         
-        # Warning if action exists and has keyframes
+        # Check action state if it exists
         if props.action_name:  # Only check if action name is set
             action = bpy.data.actions.get(props.action_name)
             if action and action.fcurves:
                 # Check if action actually has keyframes
                 has_keyframes = any(fc.keyframe_points for fc in action.fcurves)
+                box = col.box()
+                
                 if has_keyframes:
-                    box = col.box()
-                    box.alert = True
-                    # Yellow warning color through alert flag
+                    # Yellow warning for existing keyframes
+                    box.alert = False  # Don't use red alert
                     col_warn = box.column()
-                    col_warn.alert = True
-                    col_warn.label(text="⚠️ Action has keyframes!", icon='ERROR')
-                    box.prop(props, "skip_keyframe_warning", text="Don't warn about overwriting")
+                    col_warn.label(text="⚠️ Action has keyframes", icon='INFO')
+                else:
+                    # Grey info for empty action
+                    col_info = box.column()
+                    col_info.label(text="Action is empty of keyframes", icon='BLANK1')
+                
+                # Always show the checkbox
+                box.prop(props, "skip_keyframe_warning", text="Don't warn about overwriting")
 
 
 # TIMING PANEL
@@ -142,8 +147,7 @@ class MIDIPOSE_PT_run_timing(Panel, MidiPosePanel):
     bl_label = "Timing"
     bl_idname = "MIDIPOSE_PT_run_timing"
     bl_category = "MPC-Run"
-    bl_parent_id = "MIDIPOSE_PT_run_main"
-    bl_options = {'DEFAULT_CLOSED'}
+    bl_order = 2
     
     def draw(self, context):
         layout = self.layout
@@ -212,7 +216,7 @@ class MIDIPOSE_PT_run_input(Panel, MidiPosePanel):
     bl_label = "Input Summary"
     bl_idname = "MIDIPOSE_PT_run_input"
     bl_category = "MPC-Run"
-    bl_parent_id = "MIDIPOSE_PT_run_main"
+    bl_order = 3
     
     def draw(self, context):
         layout = self.layout
@@ -301,7 +305,7 @@ class MIDIPOSE_PT_run_config(Panel, MidiPosePanel):
     bl_label = "Configurations"
     bl_idname = "MIDIPOSE_PT_run_config"
     bl_category = "MPC-Run"
-    bl_parent_id = "MIDIPOSE_PT_run_main"
+    bl_order = 4
     bl_options = {'DEFAULT_CLOSED'}
     
     def draw(self, context):

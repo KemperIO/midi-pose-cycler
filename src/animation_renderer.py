@@ -38,10 +38,12 @@ def insert_pose_keyframe(obj: bpy.types.Object, pose_action: bpy.types.Action,
     if not obj.animation_data:
         obj.animation_data_create()
     
-    if not obj.animation_data.action:
-        obj.animation_data.action = bpy.data.actions.new(name="MidiPoseCyclingAnimation")
-    
+    # Use the existing action if there is one, don't create a new one
     current_action = obj.animation_data.action
+    if not current_action:
+        # This shouldn't happen if render_animation set it properly
+        print(f"ERROR: No action set on object {obj.name} - cannot insert keyframes")
+        return
     
     if mode == 'ACTION':
         # Copy all keyframes from the action
@@ -102,11 +104,30 @@ def render_animation(config: RenderConfig, note_frames: List[int]) -> tuple:
         pose_mapping contains (frame, pose_name) for each keyframe
     """
     
-    # Get the active object
+    # Get the active object - prefer armature
     obj = bpy.context.active_object
-    if not obj:
-        print("ERROR: No active object selected for animation")
-        return False, []
+    
+    # If no active object or it's not an armature, try to find one
+    if not obj or obj.type != 'ARMATURE':
+        # Look for selected armature
+        armatures = [o for o in bpy.context.selected_objects if o.type == 'ARMATURE']
+        if armatures:
+            obj = armatures[0]
+            print(f"Using selected armature: {obj.name}")
+        else:
+            # Look for any armature in scene
+            armatures = [o for o in bpy.data.objects if o.type == 'ARMATURE']
+            if armatures:
+                obj = armatures[0]
+                print(f"WARNING: No armature selected, using: {obj.name}")
+            else:
+                print("ERROR: No armature found in scene for animation")
+                return False, []
+    
+    # Make sure it's the active object for proper context
+    bpy.context.view_layer.objects.active = obj
+    
+    print(f"Animating armature: {obj.name}")
     
     # Get pose actions
     pose_actions = []
@@ -227,6 +248,20 @@ def render_animation(config: RenderConfig, note_frames: List[int]) -> tuple:
         scene.frame_end = min(last_frame, config.total_frames + config.start_frame - 1)
     else:
         scene.frame_end = config.total_frames + config.start_frame - 1
+    
+    # Report summary and verify assignment
+    total_keyframes = sum(len(fc.keyframe_points) for fc in action.fcurves)
+    print(f"\nGenerated {total_keyframes} keyframes in action '{action.name}'")
+    
+    # Verify action is still assigned
+    if obj.animation_data and obj.animation_data.action == action:
+        print(f"✓ Action '{action.name}' is assigned to {obj.name}")
+    else:
+        print(f"WARNING: Action may not be properly assigned to {obj.name}")
+        # Try to reassign
+        if not obj.animation_data:
+            obj.animation_data_create()
+        obj.animation_data.action = action
     
     return True, pose_mapping
 
