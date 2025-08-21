@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 from dataclasses import dataclass
 import sys
 import os
@@ -265,6 +265,73 @@ def generate_dynamic_events(interval_beats: float, bpm: float, fps: int, max_fra
         current_frame += frames_per_interval
     
     return events
+
+def get_note_events_with_tones(file_path: str, track_name: str, target_notes: Optional[Set[int]], 
+                               fps: int, max_frames: int) -> Tuple[List[int], List[int]]:
+    """Extract frame timing and tone values of MIDI notes from a track
+    
+    Returns:
+        Tuple of (frame_list, tone_value_list)
+    """
+    # Try to get mido, reimporting if necessary
+    mido_module = get_mido()
+    if not mido_module:
+        print("ERROR: mido not available")
+        return [], []
+        
+    try:
+        mid = mido_module.MidiFile(file_path)
+    except Exception as e:
+        print(f"Error loading MIDI file: {e}")
+        return [], []
+    
+    # Find tempo
+    tempo = 500000
+    for msg in mid.tracks[0]:
+        if msg.type == 'set_tempo':
+            tempo = msg.tempo
+            break
+    
+    # Find ALL tracks with the specified name
+    target_tracks = []
+    for i, track in enumerate(mid.tracks):
+        track_actual_name = None
+        for msg in track:
+            if msg.type == 'track_name':
+                track_actual_name = msg.name
+                break
+        
+        if track_actual_name is None:
+            track_actual_name = f"Track {i}"
+        
+        if track_actual_name == track_name:
+            target_tracks.append(track)
+    
+    if not target_tracks:
+        print(f"WARNING: No tracks found with name '{track_name}'")
+        return [], []
+    
+    # Collect note events with tones
+    note_frames = []
+    note_tones = []
+    max_seconds = max_frames / fps
+    
+    for track in target_tracks:
+        elapsed_ticks = 0
+        for msg in track:
+            elapsed_ticks += msg.time
+            time_seconds = (elapsed_ticks / mid.ticks_per_beat) * (tempo / 1_000_000)
+            
+            if time_seconds > max_seconds:
+                continue
+            
+            if msg.type == 'note_on' and msg.velocity > 0:
+                if target_notes is None or msg.note in target_notes:
+                    frame = int(time_seconds * fps)
+                    note_frames.append(frame)
+                    note_tones.append(msg.note)
+    
+    return note_frames, note_tones
 
 def get_note_events_for_track(file_path: str, track_name: str, target_notes: Optional[Set[int]], 
                             fps: int, max_frames: int) -> List[int]:

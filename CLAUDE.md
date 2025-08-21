@@ -80,7 +80,7 @@ The "ERROR: mido library not available" on reload is a known issue. Always check
 | **MIDI Analysis**  | Multi-track support, automatic track merging by name|
 | **Animation Modes**| POSE (single frame) or ACTION (full animation)      |
 | **Pose Management**| Reorderable selection with drag handles             |
-| **Cycle Modes**    | LOOP, BOOMERANG, RANDOM                             |
+| **Cycle Modes**    | LOOP, BOOMERANG, RANDOM, PITCH_FOLLOW              |
 | **Timing Controls**| Smart (bars/beats) or dumb (frames)                 |
 | **Note Filtering** | Per-track collapsible filters with checkboxes       |
 | **Interpolation**  | 13 types with hover explanations                    |
@@ -223,7 +223,7 @@ MIDI File → Track Analysis → Note Events → Frame Timing → Keyframe Gener
 | Property              | Type  | Default | Description                      |
 |-----------------------|-------|---------|----------------------------------|
 | `animation_mode`      | Enum  | POSE    | POSE or ACTION mode              |
-| `pose_cycle_mode`     | Enum  | LOOP    | LOOP/BOOMERANG/RANDOM            |
+| `pose_cycle_mode`     | Enum  | LOOP    | LOOP/BOOMERANG/RANDOM/PITCH_FOLLOW |
 | `frames_to_hold`      | Int   | 3       | Hold duration per pose           |
 | `interpolation_type`  | Enum  | EXPO    | Transition type                  |
 | `bpm`                 | Float | 120     | Beats per minute                 |
@@ -342,6 +342,7 @@ python test/run_test_wrapper.py test_midi_operator
 | **test_midi_operator** | User workflow | ✓ MIDI file loads via operator<br>✓ Tracks populate correctly<br>✓ Note selection works |
 | **test_midi_simple** | Core MIDI | ✓ mido library imports<br>✓ MIDI file analysis<br>✓ Track detection |
 | **test_dynamic_track** | Dynamic track events | ✓ Dynamic track properties<br>✓ Event generation at intervals<br>✓ Correct timing calculations |
+| **test_pitch_follow** | PITCH_FOLLOW mode | ✓ Tone class functionality<br>✓ PitchFollowMapper logic<br>✓ Bounce_out behavior<br>✓ Integration with renderer |
 
 ### Writing New Tests
 1. Create `test/test_NAME.py` with `main()` function
@@ -371,6 +372,8 @@ python test/run_test_wrapper.py test_midi_operator
 | **ui_operators.py** | All operators and properties |
 | **midi_core.py** | MIDI file analysis with mido |
 | **animation_renderer.py** | Keyframe generation |
+| **tone.py** | MIDI tone representation with names |
+| **pitch_follow_mapper.py** | Pitch-to-pose mapping logic |
 
 ## Development Notes
 
@@ -402,7 +405,48 @@ def invoke(self, context, event):
     return self.execute(context)
 ```
 
+## PITCH_FOLLOW Cycle Mode
+
+### Overview
+PITCH_FOLLOW maps MIDI tone pitch to pose selection height. Higher pitch → higher pose index, with automatic "bounce_out" to prevent repetition.
+
+### Components
+
+#### Tone Class
+Represents MIDI notes with both numeric (0-127) and human-readable names (C3, D#4):
+```python
+tone = Tone(60)  # Middle C
+print(tone.name)  # "C3"
+print(tone.value)  # 60
+```
+
+#### PitchFollowMapper
+Maps tones to pose indices with intelligent repetition handling:
+- **Linear mapping**: Lowest tone → pose 0, highest tone → last pose
+- **Bounce_out logic**: If same pose would repeat, bounce to nearest different pose
+  - At lowest (0): bounce to 1
+  - At highest (max): bounce to max-1
+  - In middle: bounce to closer edge (prefer up if equidistant)
+
+### Usage Example
+```python
+mapper = PitchFollowMapper(Tone(48), Tone(72))  # C2 to C4 range
+poses = ["Low", "Mid", "High"]
+tones = [Tone(48), Tone(48), Tone(60), Tone(72)]
+indices = mapper.map(tones, len(poses))
+# Results: [0, 1, 1, 2] - second 48 bounces from 0 to 1
+```
+
+### Animation Integration
+When PITCH_FOLLOW is selected:
+1. Analyzes MIDI track tone range
+2. Creates PitchFollowMapper with min/max tones
+3. Maps each note event to pose based on pitch
+4. Applies bounce_out for consecutive same poses
+5. Generates animation with pitch-driven pose selection
+
 ## Version History
+- **0.6.0**: PITCH_FOLLOW mode, Tone filtering, smart controls
 - **0.5.0**: ACTION mode, BPM timing, pose reordering
 - **0.4.0**: Workspace panels, config management
 - **0.3.0**: Note filtering, cycle modes

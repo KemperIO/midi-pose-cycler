@@ -15,9 +15,10 @@ class RenderConfig:
     fps: int
     total_frames: int
     action_name: str = "MidiPoseCyclingAnimation"
-    pose_cycle_mode: str = "LOOP"  # LOOP, BOOMERANG, RANDOM
+    pose_cycle_mode: str = "LOOP"  # LOOP, BOOMERANG, RANDOM, PITCH_FOLLOW
     animation_mode: str = "POSE"  # POSE or ACTION
     start_frame: int = 1  # Start frame for animation
+    note_tones: Optional[List[int]] = None  # MIDI tone values for pitch follow
     
 def insert_pose_keyframe(obj: bpy.types.Object, pose_action: bpy.types.Action, 
                          frame: int, interpolation: str = 'LINEAR', mode: str = 'POSE') -> None:
@@ -74,7 +75,11 @@ def get_next_pose_index(current_index: int, num_poses: int, mode: str, direction
     Returns: (next_index, direction)
     """
     if mode == 'RANDOM':
-        return random.randint(0, num_poses - 1), direction
+        if num_poses <= 1:
+            return 0, direction
+        # Never repeat - choose from all poses except current
+        choices = [i for i in range(num_poses) if i != current_index]
+        return random.choice(choices), direction
     elif mode == 'BOOMERANG':
         next_index = current_index + direction
         if next_index >= num_poses:
@@ -115,6 +120,34 @@ def render_animation(config: RenderConfig, note_frames: List[int]) -> tuple:
     # Track pose mapping for output
     pose_mapping = []
     
+    # Setup pitch follow mapper if needed
+    pitch_mapper = None
+    if config.pose_cycle_mode == 'PITCH_FOLLOW':
+        if not config.note_tones or len(config.note_tones) != len(note_frames):
+            print("ERROR: Pitch follow mode requires tone data")
+            return False, []
+        
+        # Import here to avoid circular dependency
+        try:
+            from .tone import Tone
+            from .pitch_follow_mapper import PitchFollowMapper
+        except ImportError:
+            from tone import Tone
+            from pitch_follow_mapper import PitchFollowMapper
+        
+        # Find tone range
+        min_tone = min(config.note_tones)
+        max_tone = max(config.note_tones)
+        
+        # Create mapper
+        pitch_mapper = PitchFollowMapper(Tone(min_tone), Tone(max_tone))
+        
+        # Pre-calculate all pose indices
+        tones = [Tone(t) for t in config.note_tones]
+        pose_indices = pitch_mapper.map(tones, len(pose_actions))
+        
+        print(f"Pitch Follow: {min_tone}-{max_tone} mapped to {len(pose_actions)} poses")
+    
     # Ensure we have animation data
     if not obj.animation_data:
         obj.animation_data_create()
@@ -137,6 +170,11 @@ def render_animation(config: RenderConfig, note_frames: List[int]) -> tuple:
     for i, frame in enumerate(note_frames):
         # Adjust for start frame
         adjusted_frame = frame + config.start_frame - 1
+        
+        # Get pose index for this event
+        if config.pose_cycle_mode == 'PITCH_FOLLOW':
+            pose_index = pose_indices[i]
+        
         current_pose = pose_actions[pose_index]
         
         # Track pose usage
@@ -166,8 +204,9 @@ def render_animation(config: RenderConfig, note_frames: List[int]) -> tuple:
                 insert_pose_keyframe(obj, current_pose, hold_end_frame, config.interpolation_type, mode='POSE')
                 frame_count += 1
         
-        # Get next pose index based on cycle mode
-        pose_index, direction = get_next_pose_index(pose_index, len(pose_actions), config.pose_cycle_mode, direction)
+        # Get next pose index based on cycle mode (skip for pitch follow)
+        if config.pose_cycle_mode != 'PITCH_FOLLOW':
+            pose_index, direction = get_next_pose_index(pose_index, len(pose_actions), config.pose_cycle_mode, direction)
     
     # Update scene frame range
     scene = bpy.context.scene

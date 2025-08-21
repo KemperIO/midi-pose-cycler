@@ -247,6 +247,10 @@ class MIDIPOSE_OT_render_animation(Operator):
             errors.append("No poses selected - select poses in MPC-Pose tab")
             print("ERROR: No poses selected")
             print("  Solution: Go to MPC-Pose tab and select poses to animate")
+        elif len(selected_poses) <= 1:
+            errors.append(f"Need at least 2 poses for animation (got {len(selected_poses)})")
+            print(f"ERROR: Only {len(selected_poses)} pose selected")
+            print("  Solution: Select at least 2 poses for animation cycling")
         
         if errors:
             print("\n" + "="*60)
@@ -952,7 +956,8 @@ class MidiPoseProperties(bpy.types.PropertyGroup):
         items=[
             ('LOOP', 'Loop', 'Cycle through poses in order, restart at beginning'),
             ('BOOMERANG', 'Boomerang', 'Cycle forward then backward'),
-            ('RANDOM', 'Random', 'Random pose selection'),
+            ('RANDOM', 'Random', 'Random pose selection (never repeats)'),
+            ('PITCH_FOLLOW', 'Pitch Follow', 'Poses follow MIDI pitch height'),
         ],
         default='LOOP'
     )
