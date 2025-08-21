@@ -103,48 +103,29 @@ class MIDIPOSE_PT_midi_tracks(Panel, MidiPosePanel):
             box.operator("midipose.reload_midi", text="Reload File", icon='FILE_REFRESH')
             return
         
-        # Track list with multi-selection
+        # Track list with grid flow for better multi-selection
         box = layout.box()
         box.label(text="Select Tracks:", icon='NLA_PUSHDOWN')
         
+        # Use grid flow for track checkboxes
+        grid = box.grid_flow(columns=2, align=True)
         for track in props.track_items:
-            # Main row for track
-            col = box.column()
-            row = col.row(align=False)  # Don't align tightly
-            
-            # Checkbox for selection - fixed width
-            sub = row.row()
-            sub.alignment = 'LEFT'
-            sub.scale_x = 0.3  # Smaller checkbox area
-            sub.prop(track, "selected", text="")
-            
-            # Track name - separate column with proper spacing
-            sub = row.row()
-            sub.active = track.selected
-            sub.alignment = 'LEFT'
-            sub.scale_x = 1.5
-            sub.label(text=track.name)
-            
-            # Note count
-            note_row = row.row()
-            note_row.alignment = 'RIGHT'
-            if track.filter_notes:
-                selected_notes = sum(1 for n in track.note_filters if n.selected)
-                note_row.label(text=f"{selected_notes}/{track.note_count} notes")
-            else:
-                note_row.label(text=f"{track.note_count} notes")
-            
-            # Note filter toggle
-            if track.selected:
-                row.prop(track, "filter_notes", text="", icon='FILTER', toggle=True)
-                
-                # Show note filter dropdown if enabled
+            row = grid.row(align=True)
+            row.prop(track, "selected", text=track.name)
+            if track.note_count:
+                row.label(text=f"({track.note_count})")
+        
+        # Show note filters for selected tracks
+        selected_tracks = [t for t in props.track_items if t.selected]
+        if selected_tracks:
+            layout.separator()
+            for track in selected_tracks:
                 if track.filter_notes:
-                    filter_box = col.box()
-                    filter_box.scale_y = 0.9
+                    track_box = layout.box()
+                    track_box.label(text=f"{track.name} Note Filter:", icon='FILTER')
                     
                     # Quick selection
-                    row = filter_box.row(align=True)
+                    row = track_box.row(align=True)
                     row.scale_y = 0.8
                     
                     op = row.operator("midipose.select_all_track_notes", text="All")
@@ -157,14 +138,14 @@ class MIDIPOSE_PT_midi_tracks(Panel, MidiPosePanel):
                     op.track_name = track.name
                     
                     # Note grid
-                    grid = filter_box.grid_flow(columns=2, align=True)
-                    for note_filter in track.note_filters[:10]:  # Limit display
-                        row = grid.row(align=True)
-                        row.prop(note_filter, "selected", text="")
-                        row.label(text=f"{note_filter.note_name}")
-                    
-                    if len(track.note_filters) > 10:
-                        filter_box.label(text=f"... and {len(track.note_filters) - 10} more notes")
+                    if track.note_filters:
+                        note_grid = track_box.grid_flow(columns=3, align=True)
+                        for note_filter in track.note_filters[:12]:  # Limit display
+                            note_row = note_grid.row(align=True)
+                            note_row.prop(note_filter, "selected", text=note_filter.note_name)
+                        
+                        if len(track.note_filters) > 12:
+                            track_box.label(text=f"... and {len(track.note_filters) - 12} more notes")
         
         # Selected track info
         if props.selected_track:
@@ -219,7 +200,7 @@ class MIDIPOSE_PT_midi_notes(Panel, MidiPosePanel):
             # Track header with filter toggle
             row = box.row()
             row.label(text=f"{track.name}:", icon='NLA_PUSHDOWN')
-            row.prop(track, "filter_notes", text="Filter", toggle=True)
+            row.prop(track, "filter_notes", text="Enable Filter", toggle=True)
             
             if track.filter_notes and track.note_filters:
                 # Quick selection buttons
@@ -235,17 +216,15 @@ class MIDIPOSE_PT_midi_notes(Panel, MidiPosePanel):
                 op = row.operator("midipose.invert_track_notes", text="Invert")
                 op.track_name = track.name
                 
-                # Note selection grid
-                grid = box.grid_flow(columns=2, align=True)
+                # Note selection grid - use grid flow for better layout
+                grid = box.grid_flow(columns=3, align=True)
                 
-                display_limit = 12
+                display_limit = 15
                 for i, note_filter in enumerate(track.note_filters):
                     if i >= display_limit:
                         break
                     
-                    row = grid.row(align=True)
-                    row.prop(note_filter, "selected", text="")
-                    row.label(text=note_filter.note_name)
+                    grid.prop(note_filter, "selected", text=note_filter.note_name)
                 
                 if len(track.note_filters) > display_limit:
                     box.label(text=f"... and {len(track.note_filters) - display_limit} more notes")

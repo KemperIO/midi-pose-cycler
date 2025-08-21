@@ -83,7 +83,7 @@ class MIDIPOSE_PT_pose_order(Panel, MidiPosePanel):
     """Pose ordering panel"""
     bl_label = "Pose Order"
     bl_idname = "MIDIPOSE_PT_pose_order"
-    bl_order = 1
+    bl_order = 2
     
     def draw_header(self, context):
         self.layout.label(text="", icon='SORT_ASC')
@@ -147,7 +147,7 @@ class MIDIPOSE_PT_pose_cycle(Panel, MidiPosePanel):
     """Cycle mode settings"""
     bl_label = "Cycle Settings"
     bl_idname = "MIDIPOSE_PT_pose_cycle"
-    bl_order = 2
+    bl_order = 1
     
     def draw_header(self, context):
         self.layout.label(text="", icon='RECOVER_LAST')
@@ -194,8 +194,8 @@ class MIDIPOSE_PT_pose_cycle(Panel, MidiPosePanel):
 # Registration
 classes = [
     MIDIPOSE_PT_pose_selection,
-    MIDIPOSE_PT_pose_order,
     MIDIPOSE_PT_pose_cycle,
+    MIDIPOSE_PT_pose_order,
 ]
 
 def register():
