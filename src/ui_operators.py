@@ -170,11 +170,34 @@ class MIDIPOSE_OT_render_animation(Operator):
         
         col = layout.column()
         col.alert = True
-        col.label(text=f"Clear keyframes for '{props.action_name}'?", icon='ERROR')
-        col.label(text="and generate new animation?")
+        col.label(text="Warning: Existing Animation", icon='ERROR')
+        col.separator()
+        
+        # Clear warning message
+        box = col.box()
+        box.alert = True
+        box.label(text=f"Action '{props.action_name}' contains keyframes!")
+        box.label(text="")
+        box.label(text="This operation will DELETE all existing")
+        box.label(text="keyframes and generate new animation.")
+        
         col.separator()
         col.alert = False
+        
+        # Question
+        row = col.row()
+        row.label(text="Do you want to continue?", icon='QUESTION')
+        
+        col.separator()
+        
+        # Checkbox for future
         col.prop(props, "skip_keyframe_warning", text="Don't ask again for this action")
+        
+        # Note about buttons
+        col.separator()
+        info_box = col.box()
+        info_box.scale_y = 0.8
+        info_box.label(text="Press OK to overwrite, Cancel to abort", icon='INFO')
     
     def execute(self, context):
         scene = context.scene
@@ -563,6 +586,43 @@ class MIDIPOSE_OT_delete_config(Operator):
         else:
             self.report({'ERROR'}, "Failed to delete config")
             return {'CANCELLED'}
+
+
+# Note selection operators
+class MIDIPOSE_OT_select_all_notes(Operator):
+    """Select all notes"""
+    bl_idname = "midipose.select_all_notes"
+    bl_label = "Select All Notes"
+    
+    def execute(self, context):
+        props = context.scene.midi_pose_props
+        for note in props.note_items:
+            note.selected = True
+        return {'FINISHED'}
+
+
+class MIDIPOSE_OT_deselect_all_notes(Operator):
+    """Deselect all notes"""
+    bl_idname = "midipose.deselect_all_notes"
+    bl_label = "Deselect All Notes"
+    
+    def execute(self, context):
+        props = context.scene.midi_pose_props
+        for note in props.note_items:
+            note.selected = False
+        return {'FINISHED'}
+
+
+class MIDIPOSE_OT_invert_note_selection(Operator):
+    """Invert note selection"""
+    bl_idname = "midipose.invert_note_selection"
+    bl_label = "Invert Note Selection"
+    
+    def execute(self, context):
+        props = context.scene.midi_pose_props
+        for note in props.note_items:
+            note.selected = not note.selected
+        return {'FINISHED'}
 
 class TrackItem(bpy.types.PropertyGroup):
     """Property group for MIDI tracks"""

@@ -88,18 +88,20 @@ Copy to: `[BLENDER]/4.5/extensions/midi-pose-cycler/`
 ### Panel-Based UI (N-Pane)
 
 #### Access
-In 3D Viewport, press **N** to open sidebar → Click **"MidiPoseCycler"** tab
+In 3D Viewport, press **N** to open sidebar → Three tabs available:
+- **MPC-Run**: Main execution and settings
+- **MPC-Pose**: Pose selection and ordering
+- **MPC-MIDI**: MIDI file and track management
 
 **Available in**: Object Mode & Pose Mode
 
-#### Panel Layout
-Three panels in the MidiPoseCycler tab:
+#### Tab Layout
 
-| Panel | Purpose |
-|-------|----------|
-| **MIDI Pose Cycler - Controls** | Main settings: MIDI file, action name, timing, configs |
-| **Poses** | Select and order pose actions |
-| **MIDI Data** | Track selection and note filtering |
+| Tab Name | Panels | Features |
+|----------|--------|----------|
+| **MPC-Run** | • Run Animation<br>• Action Settings<br>• Timing<br>• Preview<br>• Configurations | Generate button, action dropdown selector, timing settings, preview of selections, save/load configs |
+| **MPC-Pose** | • Pose Selection<br>• Pose Order<br>• Cycle Settings | Grid-based pose selection, drag-and-drop ordering with large arrows, cycle mode settings |
+| **MPC-MIDI** | • MIDI File<br>• Track Selection<br>• Note Filter | MIDI file loading, track selection with radio buttons, note filtering with nicknames |
 
 #### Workflow
 1. **Load MIDI**: Click "Load MIDI File" or drag from File Browser

@@ -77,11 +77,17 @@ def main():
     
     print("✓ Addon registered without errors")
     
-    # Verify panels are registered
+    # Verify panels are registered (new 3-tab structure)
     panel_ids = [
-        'MIDIPOSE_PT_properties_main',
-        'MIDIPOSE_PT_properties_poses', 
-        'MIDIPOSE_PT_properties_midi'
+        # MPC-Run tab panels
+        'MIDIPOSE_PT_run_main',
+        'MIDIPOSE_PT_run_action',
+        # MPC-Pose tab panels
+        'MIDIPOSE_PT_pose_selection',
+        'MIDIPOSE_PT_pose_order',
+        # MPC-MIDI tab panels
+        'MIDIPOSE_PT_midi_file',
+        'MIDIPOSE_PT_midi_tracks'
     ]
     
     for panel_id in panel_ids:

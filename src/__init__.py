@@ -26,14 +26,18 @@ from . import midi_core
 from . import animation_renderer
 from . import config_manager
 from . import ui_operators
-from . import ui_properties_panels
+from . import ui_panels_run
+from . import ui_panels_pose
+from . import ui_panels_midi
 
 # Reload modules for development (helps with updates)
 importlib.reload(midi_core)
 importlib.reload(animation_renderer)
 importlib.reload(config_manager)
 importlib.reload(ui_operators)
-importlib.reload(ui_properties_panels)
+importlib.reload(ui_panels_run)
+importlib.reload(ui_panels_pose)
+importlib.reload(ui_panels_midi)
 
 # Classes to register
 classes = [
@@ -58,11 +62,26 @@ classes = [
     ui_operators.MIDIPOSE_OT_save_config_as,
     ui_operators.MIDIPOSE_OT_load_config,
     ui_operators.MIDIPOSE_OT_delete_config,
+    ui_operators.MIDIPOSE_OT_select_all_notes,
+    ui_operators.MIDIPOSE_OT_deselect_all_notes,
+    ui_operators.MIDIPOSE_OT_invert_note_selection,
     
-    # Properties Panels
-    ui_properties_panels.MIDIPOSE_PT_properties_main,
-    ui_properties_panels.MIDIPOSE_PT_properties_poses,
-    ui_properties_panels.MIDIPOSE_PT_properties_midi,
+    # MPC-Run Panels
+    ui_panels_run.MIDIPOSE_PT_run_main,
+    ui_panels_run.MIDIPOSE_PT_run_action,
+    ui_panels_run.MIDIPOSE_PT_run_timing,
+    ui_panels_run.MIDIPOSE_PT_run_preview,
+    ui_panels_run.MIDIPOSE_PT_run_config,
+    
+    # MPC-Pose Panels
+    ui_panels_pose.MIDIPOSE_PT_pose_selection,
+    ui_panels_pose.MIDIPOSE_PT_pose_order,
+    ui_panels_pose.MIDIPOSE_PT_pose_cycle,
+    
+    # MPC-MIDI Panels
+    ui_panels_midi.MIDIPOSE_PT_midi_file,
+    ui_panels_midi.MIDIPOSE_PT_midi_tracks,
+    ui_panels_midi.MIDIPOSE_PT_midi_notes,
 ]
 
 def register():

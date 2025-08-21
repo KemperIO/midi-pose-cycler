@@ -263,28 +263,36 @@ class MIDIPOSE_PT_properties_poses(Panel, MidiPosePanel):
       selected_poses.sort(key=lambda p: p.order_index)
       
       for i, pose in enumerate(selected_poses):
-        row = order_box.row(align=True)
+        row = order_box.row(align=False)
+        row.alignment = 'LEFT'
         
-        # Order number
-        row.label(text=f"#{i+1}")
+        # Order number with better visibility
+        sub = row.row()
+        sub.scale_x = 0.8
+        sub.label(text=f"{i+1}.")
         
-        # Pose name
-        row.label(text=pose.name, icon='ACTION' if bpy.data.actions.get(pose.name) else 'POSE_HLT')
+        # Pose name - take more space
+        sub = row.row()
+        sub.scale_x = 2.0
+        icon = 'ACTION' if bpy.data.actions.get(pose.name) else 'POSE_HLT'
+        sub.label(text=pose.name, icon=icon)
         
-        # Move up/down buttons
+        # Spacer to push buttons to the right
+        row.separator()
+        
+        # Move up button - larger and more visible
         sub = row.row(align=True)
-        sub.scale_x = 0.5
-        
-        # Move up
-        op = sub.operator("midipose.move_pose", text="", icon='TRIA_UP')
-        op.direction = 'UP'
-        op.pose_name = pose.name
+        sub.scale_x = 1.2
+        sub.scale_y = 1.2
+        up_op = sub.operator("midipose.move_pose", text="", icon='TRIA_UP')
+        up_op.direction = 'UP'
+        up_op.pose_name = pose.name
         sub.enabled = i > 0
         
-        # Move down
-        op = sub.operator("midipose.move_pose", text="", icon='TRIA_DOWN')
-        op.direction = 'DOWN'
-        op.pose_name = pose.name
+        # Move down button - larger and more visible
+        down_op = sub.operator("midipose.move_pose", text="", icon='TRIA_DOWN')
+        down_op.direction = 'DOWN'
+        down_op.pose_name = pose.name
         sub.enabled = i < len(selected_poses) - 1
     
     # Summary
