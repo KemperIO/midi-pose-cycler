@@ -61,7 +61,7 @@ classes = [
     # Workspace Creator
     workspace_creator.MIDIPOSE_OT_create_workspace,
     workspace_creator.MIDIPOSE_OT_setup_drag_drop,
-    workspace_node_based.MIDIPOSE_OT_create_node_workspace,
+    workspace_node_based.MIDIPOSE_OT_generate_node_workspace,
     
     # Properties Panels
     ui_properties_panels.MIDIPOSE_PT_properties_main,
@@ -74,7 +74,7 @@ def menu_func(self, context):
     self.layout.operator("midipose.create_workspace", 
                         text="MIDI Pose Cycler",
                         icon='FILE_SOUND')
-    self.layout.operator("midipose.create_node_workspace",
+    self.layout.operator("mpc.generate_node_workspace",
                         text="MIDI Pose Nodes",
                         icon='NODETREE')
 

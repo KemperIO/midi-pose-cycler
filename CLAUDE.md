@@ -1,11 +1,15 @@
 # MIDI Pose Cycler - Blender Extension
 
-**Public Repository** | Blender 4.5+ | GPL-3.0
+**Public Repository** | Blender 4.5+ | GPL-3.0 | **WSL**: C:\→/mnt/c/
 
 **Developer Note**: Reference `bpyref.md` for Blender API patterns. Update it when learning from https://docs.blender.org/api/4.5/
 
 ## Overview
 Opinionated Blender extension for synchronizing pose/action animations to MIDI events. Provides both node-based visual workflow and traditional panel interface.
+
+**Dev Rules**: Be pithy. Multi-task format: `** task1` `** task2` = complete all.
+
+**Bash Permissions**: `Bash("/mnt/c/Program Files/Blender Foundation/Blender 4.5/blender.exe" --background --factory-startup --python test/*.py)`
 
 ### Architecture
 - **Node-Based System**: Visual node tree for MIDI animation pipeline
@@ -79,7 +83,7 @@ Connect nodes in sequence:
 Window menu → MIDI Pose Cycler
 ```
 
-Creates panel-based workspace with 8 panes:
+Creates panel-based workspace with 8 areas (aka pane/panel):
 
 | Pane             | Location    | Purpose                                  |
 |------------------|-------------|------------------------------------------|
@@ -280,6 +284,8 @@ python test/run_tests.py addon_load
 4. Return True/False or exit with 0/1
 
 ## Development Notes
+
+**IMPORTANT**: Always run tests when changing workspace setup logic to verify workspace generation works without crashes.
 
 ### Workspace-Specific Panels
 ```python

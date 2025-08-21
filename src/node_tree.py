@@ -42,6 +42,42 @@ class PoseDataSocket(NodeSocket):
         layout.label(text=text)
 
 
+class TrackDataSocket(NodeSocket):
+    """Socket type for track data flow"""
+    bl_idname = 'TrackDataSocketType'
+    bl_label = "Track Data"
+    
+    def draw_color(self, context, node):
+        return (0.6, 0.4, 0.8, 1.0)  # Purple
+    
+    def draw(self, context, layout, node, text):
+        layout.label(text=text)
+
+
+class FilteredDataSocket(NodeSocket):
+    """Socket type for filtered MIDI data"""
+    bl_idname = 'FilteredDataSocketType'
+    bl_label = "Filtered Data"
+    
+    def draw_color(self, context, node):
+        return (0.8, 0.4, 0.6, 1.0)  # Pink
+    
+    def draw(self, context, layout, node, text):
+        layout.label(text=text)
+
+
+class SequenceSocket(NodeSocket):
+    """Socket type for pose sequence"""
+    bl_idname = 'SequenceSocketType'
+    bl_label = "Sequence"
+    
+    def draw_color(self, context, node):
+        return (0.8, 0.8, 0.2, 1.0)  # Yellow
+    
+    def draw(self, context, layout, node, text):
+        layout.label(text=text)
+
+
 class AnimationSocket(NodeSocket):
     """Socket type for animation output"""
     bl_idname = 'AnimationSocketType'
@@ -95,21 +131,63 @@ class MidiInputNode(MidiPoseNode):
         subtype='FILE_PATH'
     )
     
+    track_count: IntProperty(
+        name="Tracks",
+        default=0
+    )
+    
+    duration: StringProperty(
+        name="Duration",
+        default="0:00"
+    )
+    
+    bpm: FloatProperty(
+        name="BPM",
+        default=120.0
+    )
+    
     def init(self, context):
         self.outputs.new('MidiDataSocketType', "MIDI Data")
         self.width = 200
     
     def draw_buttons(self, context, layout):
         layout.prop(self, "midi_file", text="")
+        row = layout.row()
+        row.operator("midipose.load_midi_node", text="Load MIDI", icon='FILE_FOLDER')
+        
         if self.midi_file:
             # Show analysis info
             col = layout.column()
-            col.label(text="Tracks: 4", icon='OUTLINER_DATA_SPEAKER')
-            col.label(text="Duration: 3:24", icon='TIME')
-            col.label(text="BPM: 120", icon='SNAP_INCREMENT')
+            col.label(text=f"Tracks: {self.track_count}", icon='OUTLINER_DATA_SPEAKER')
+            col.label(text=f"Duration: {self.duration}", icon='TIME')
+            col.label(text=f"BPM: {self.bpm:.1f}", icon='SNAP_INCREMENT')
     
     def draw_label(self):
         return "MIDI Input"
+    
+    def load_midi(self, context):
+        """Load and analyze MIDI file"""
+        if not self.midi_file:
+            return
+        
+        # Import midi_core for analysis
+        try:
+            from . import midi_core
+            analysis = midi_core.analyze_midi_file(self.midi_file)
+            if analysis:
+                self.track_count = len(analysis.get('tracks', []))
+                # Calculate duration
+                total_ticks = analysis.get('total_ticks', 0)
+                ticks_per_beat = analysis.get('ticks_per_beat', 480)
+                tempo = analysis.get('tempo', 500000)  # microseconds per beat
+                bpm = 60000000 / tempo
+                self.bpm = bpm
+                duration_seconds = (total_ticks / ticks_per_beat) * (tempo / 1000000)
+                mins = int(duration_seconds // 60)
+                secs = int(duration_seconds % 60)
+                self.duration = f"{mins}:{secs:02d}"
+        except:
+            pass
 
 
 class TrackSelectorNode(MidiPoseNode):
@@ -132,21 +210,46 @@ class TrackSelectorNode(MidiPoseNode):
     )
     
     def init(self, context):
-        self.inputs.new('MidiDataSocketType', "MIDI In")
-        self.outputs.new('MidiDataSocketType', "Track Out")
+        self.inputs.new('MidiDataSocketType', "MIDI Data")
+        self.outputs.new('TrackDataSocketType', "Track Data")
         self.width = 200
     
     def draw_buttons(self, context, layout):
         col = layout.column()
         
-        # Track list (would be dynamic based on input)
+        # Get input node if connected
+        midi_data = self.get_input_data()
+        
         col.label(text="Select Track:")
         box = col.box()
-        box.label(text="1: Drums", icon='PLAY_SOUND')
-        box.label(text="2: Bass", icon='PLAY_SOUND')
-        box.label(text="3: Lead", icon='PLAY_SOUND')
+        
+        if midi_data and 'tracks' in midi_data:
+            for i, track in enumerate(midi_data['tracks']):
+                row = box.row()
+                icon = 'RADIOBUT_ON' if i == self.selected_track else 'RADIOBUT_OFF'
+                op = row.operator("midipose.select_track_node", text=f"{i}: {track['name']}", icon=icon)
+                op.track_index = i
+                row.label(text=f"{track['note_count']} notes")
+        else:
+            box.label(text="Connect MIDI Input", icon='INFO')
         
         col.prop(self, "merge_same_name")
+    
+    def get_input_data(self):
+        """Get data from connected input node"""
+        if self.inputs[0].is_linked:
+            link = self.inputs[0].links[0]
+            from_node = link.from_node
+            if hasattr(from_node, 'midi_file'):
+                # Return mock data for now
+                return {
+                    'tracks': [
+                        {'name': 'Drums', 'note_count': 128},
+                        {'name': 'Bass', 'note_count': 64},
+                        {'name': 'Lead', 'note_count': 32}
+                    ]
+                }
+        return None
 
 
 class NoteFilterNode(MidiPoseNode):
@@ -181,8 +284,8 @@ class NoteFilterNode(MidiPoseNode):
     )
     
     def init(self, context):
-        self.inputs.new('MidiDataSocketType', "Track In")
-        self.outputs.new('MidiDataSocketType', "Filtered")
+        self.inputs.new('TrackDataSocketType', "Track Data")
+        self.outputs.new('FilteredDataSocketType', "Filtered Data")
         self.width = 200
     
     def draw_buttons(self, context, layout):
@@ -221,14 +324,14 @@ class PoseSequenceNode(MidiPoseNode):
         items=[
             ('LOOP', "Loop", "Cycle through poses"),
             ('RANDOM', "Random", "Random pose selection"),
-            ('PINGPONG', "Ping Pong", "Forward then backward"),
+            ('BOOMERANG', "Boomerang", "Forward then backward"),
         ],
         default='LOOP'
     )
     
     def init(self, context):
-        self.inputs.new('PoseDataSocketType', "Poses")
-        self.outputs.new('PoseDataSocketType', "Sequence")
+        self.inputs.new('PoseDataSocketType', "Pose Data")
+        self.outputs.new('SequenceSocketType', "Sequence")
         self.width = 250
     
     def draw_buttons(self, context, layout):
@@ -261,23 +364,43 @@ class PoseInputNode(MidiPoseNode):
     )
     
     def init(self, context):
-        self.outputs.new('PoseDataSocketType', "Poses")
-        self.width = 200
+        self.outputs.new('PoseDataSocketType', "Pose Data")
+        self.width = 250
     
     def draw_buttons(self, context, layout):
         col = layout.column()
         
         row = col.row()
         row.prop(self, "filter_prefix", text="", icon='VIEWZOOM')
-        row.operator("midipose.refresh_poses", text="", icon='FILE_REFRESH')
+        row.operator("midipose.refresh_poses_node", text="", icon='FILE_REFRESH')
         
         col.label(text="Available Poses:")
         box = col.box()
-        # Would list actual poses
-        box.label(text="• neck-left", icon='BONE_DATA')
-        box.label(text="• neck-right", icon='BONE_DATA')
-        box.label(text="• head-up", icon='BONE_DATA')
-        box.label(text="• head-down", icon='BONE_DATA')
+        
+        # Get actual actions from project
+        actions = self.get_available_poses()
+        if actions:
+            for action in actions[:10]:  # Limit display
+                row = box.row()
+                row.operator("midipose.select_pose_node", text=action.name, icon='BONE_DATA').action_name = action.name
+        else:
+            box.label(text="No poses found", icon='INFO')
+            box.label(text="Create actions first")
+    
+    def get_available_poses(self):
+        """Get available pose actions from project"""
+        import bpy
+        actions = []
+        for action in bpy.data.actions:
+            # Filter out generated actions
+            if not action.name.startswith("MidiPose"):
+                if not self.filter_prefix or self.filter_prefix.lower() in action.name.lower():
+                    actions.append(action)
+        return sorted(actions, key=lambda a: a.name)
+    
+    def refresh_poses(self):
+        """Refresh pose list"""
+        pass
 
 
 class TimingNode(MidiPoseNode):
@@ -285,6 +408,12 @@ class TimingNode(MidiPoseNode):
     bl_idname = 'TimingNode'
     bl_label = "Timing"
     bl_icon = 'TIME'
+    
+    use_smart_timing: BoolProperty(
+        name="Smart Timing",
+        description="Use musical timing (bars/beats)",
+        default=False
+    )
     
     frames_to_hold: IntProperty(
         name="Hold Frames",
@@ -300,7 +429,16 @@ class TimingNode(MidiPoseNode):
             ('CONSTANT', "Constant", "No interpolation"),
             ('LINEAR', "Linear", "Linear interpolation"),
             ('BEZIER', "Bezier", "Smooth bezier"),
+            ('SINE', "Sine", "Sine wave interpolation"),
+            ('QUAD', "Quadratic", "Quadratic easing"),
+            ('CUBIC', "Cubic", "Cubic easing"),
+            ('QUART', "Quartic", "Quartic easing"),
+            ('QUINT', "Quintic", "Quintic easing"),
             ('EXPO', "Exponential", "Exponential easing"),
+            ('CIRC', "Circular", "Circular easing"),
+            ('BACK', "Back", "Back easing"),
+            ('BOUNCE', "Bounce", "Bounce easing"),
+            ('ELASTIC', "Elastic", "Elastic easing"),
         ],
         default='EXPO'
     )
@@ -313,16 +451,74 @@ class TimingNode(MidiPoseNode):
         max=300.0
     )
     
+    beats_per_bar: IntProperty(
+        name="Beats/Bar",
+        description="Time signature numerator",
+        default=4,
+        min=1,
+        max=16
+    )
+    
+    start_bar: IntProperty(
+        name="Start Bar",
+        description="Bar to start animation",
+        default=1,
+        min=1
+    )
+    
+    start_beat: IntProperty(
+        name="Start Beat",
+        description="Beat within bar to start",
+        default=1,
+        min=1
+    )
+    
+    duration_bars: IntProperty(
+        name="Bars",
+        description="Duration in bars",
+        default=4,
+        min=0
+    )
+    
+    duration_beats: IntProperty(
+        name="Beats",
+        description="Additional beats",
+        default=0,
+        min=0
+    )
+    
     def init(self, context):
-        self.inputs.new('MidiDataSocketType', "MIDI")
-        self.inputs.new('PoseDataSocketType', "Poses")
+        self.inputs.new('FilteredDataSocketType', "MIDI")
+        self.inputs.new('SequenceSocketType', "Poses")
         self.outputs.new('AnimationSocketType', "Animation")
-        self.width = 200
+        self.width = 250
     
     def draw_buttons(self, context, layout):
         col = layout.column()
-        col.prop(self, "bpm")
-        col.prop(self, "frames_to_hold")
+        
+        # Smart timing toggle
+        col.prop(self, "use_smart_timing")
+        
+        if self.use_smart_timing:
+            # Musical timing
+            col.prop(self, "bpm")
+            col.prop(self, "beats_per_bar")
+            
+            col.separator()
+            col.label(text="Start Position:")
+            row = col.row()
+            row.prop(self, "start_bar", text="Bar")
+            row.prop(self, "start_beat", text="Beat")
+            
+            col.label(text="Duration:")
+            row = col.row()
+            row.prop(self, "duration_bars", text="Bars")
+            row.prop(self, "duration_beats", text="Beats")
+        else:
+            # Frame-based timing
+            col.prop(self, "frames_to_hold")
+        
+        col.separator()
         col.prop(self, "interpolation_type", text="")
 
 
@@ -336,6 +532,15 @@ class AnimationOutputNode(MidiPoseNode):
         name="Action",
         description="Output action name",
         default="MidiPoseAnimation"
+    )
+    
+    animation_mode: EnumProperty(
+        name="Mode",
+        items=[
+            ('POSE', "Pose", "Single frame poses"),
+            ('ACTION', "Action", "Full action clips")
+        ],
+        default='POSE'
     )
     
     start_frame: IntProperty(
@@ -359,6 +564,7 @@ class AnimationOutputNode(MidiPoseNode):
     def draw_buttons(self, context, layout):
         col = layout.column()
         
+        col.prop(self, "animation_mode", text="")
         col.prop(self, "action_name", text="")
         col.prop(self, "start_frame")
         col.prop(self, "clear_existing")
@@ -408,6 +614,9 @@ classes = [
     # Sockets
     MidiDataSocket,
     PoseDataSocket,
+    TrackDataSocket,
+    FilteredDataSocket,
+    SequenceSocket,
     AnimationSocket,
     # Tree
     MidiPoseNodeTree,
