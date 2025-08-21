@@ -89,13 +89,18 @@ def get_next_pose_index(current_index: int, num_poses: int, mode: str, direction
     else:  # LOOP (default)
         return (current_index + 1) % num_poses, direction
 
-def render_animation(config: RenderConfig, note_frames: List[int]) -> bool:
-    """Render the animation based on MIDI events and poses"""
+def render_animation(config: RenderConfig, note_frames: List[int]) -> tuple:
+    """Render the animation based on MIDI events and poses
+    
+    Returns:
+        (success: bool, pose_mapping: List[tuple])
+        pose_mapping contains (frame, pose_name) for each keyframe
+    """
     
     # Get the active object
     obj = bpy.context.active_object
     if not obj:
-        return False
+        return False, []
     
     # Get pose actions
     pose_actions = []
@@ -105,7 +110,10 @@ def render_animation(config: RenderConfig, note_frames: List[int]) -> bool:
             pose_actions.append(pose_action)
     
     if not pose_actions or not note_frames:
-        return False
+        return False, []
+    
+    # Track pose mapping for output
+    pose_mapping = []
     
     # Ensure we have animation data
     if not obj.animation_data:
@@ -130,6 +138,9 @@ def render_animation(config: RenderConfig, note_frames: List[int]) -> bool:
         # Adjust for start frame
         adjusted_frame = frame + config.start_frame - 1
         current_pose = pose_actions[pose_index]
+        
+        # Track pose usage
+        pose_mapping.append((adjusted_frame, current_pose.name))
         
         if config.animation_mode == 'ACTION':
             # Insert full action at the note timing
@@ -170,7 +181,7 @@ def render_animation(config: RenderConfig, note_frames: List[int]) -> bool:
     else:
         scene.frame_end = config.total_frames + config.start_frame - 1
     
-    return True
+    return True, pose_mapping
 
 def get_available_poses() -> List[str]:
     """Get list of available pose actions in the project"""

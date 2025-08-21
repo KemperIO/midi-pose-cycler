@@ -101,9 +101,9 @@ class MIDIPOSE_PT_run_main(Panel, MidiPosePanel):
             sub.scale_x = 2.0
             sub.label(text="Track")
             sub = row.row()
-            sub.label(text="Notes")
+            sub.label(text="Events")
             sub = row.row()
-            sub.label(text="Filter")
+            sub.label(text="Tones")
             
             box.separator(factor=0.5)
             
@@ -117,18 +117,25 @@ class MIDIPOSE_PT_run_main(Panel, MidiPosePanel):
                 sub.scale_x = 2.0
                 sub.label(text=track.name, icon='NLA_PUSHDOWN')
                 
-                # Note count
+                # Event count
                 sub = row.row()
-                if track.filter_notes:
-                    selected_notes = sum(1 for n in track.note_filters if n.selected)
-                    sub.label(text=f"{selected_notes}/{track.note_count}")
-                else:
-                    sub.label(text=f"{track.note_count}")
+                sub.label(text=f"{track.note_count}")
                 
-                # Filter status
+                # Tone filter info
                 sub = row.row()
-                if track.filter_notes:
-                    sub.label(text="Active", icon='FILTER')
+                if track.is_dynamic:
+                    sub.label(text="N/A", icon='TIME')
+                elif track.filter_notes and track.note_filters:
+                    selected_tones = [n for n in track.note_filters if n.selected]
+                    if selected_tones:
+                        # Show first few selected tones
+                        tone_names = [f"{t.note_name}" for t in selected_tones[:3]]
+                        text = ", ".join(tone_names)
+                        if len(selected_tones) > 3:
+                            text += f" (+{len(selected_tones)-3})"
+                        sub.label(text=text, icon='FILTER')
+                    else:
+                        sub.label(text="None", icon='X')
                 else:
                     sub.label(text="All", icon='CHECKBOX_HLT')
             

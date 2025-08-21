@@ -137,8 +137,8 @@ class MIDIPOSE_PT_midi_tracks(Panel, MidiPosePanel):
 
 # NOTE FILTERING PANEL
 class MIDIPOSE_PT_midi_notes(Panel, MidiPosePanel):
-    """Note filtering panel"""
-    bl_label = "Note Filter"
+    """Tone filtering panel"""
+    bl_label = "Tone Filter"
     bl_idname = "MIDIPOSE_PT_midi_notes"
     bl_order = 2
     
@@ -237,15 +237,17 @@ class MIDIPOSE_PT_midi_notes(Panel, MidiPosePanel):
                 
                 filter_box.separator(factor=0.5)
                 
-                # Note selection grid
-                note_grid = filter_box.grid_flow(columns=3, align=True)
+                # Tone selection grid - show tone name with MIDI number
+                note_grid = filter_box.grid_flow(columns=2, align=True)
                 
-                display_limit = 15
+                display_limit = 12
                 for i, note_filter in enumerate(track.note_filters):
                     if i >= display_limit:
                         break
                     
-                    note_grid.prop(note_filter, "selected", text=note_filter.note_name)
+                    # Format: "C3 (60)" - tone name with MIDI number
+                    label = f"{note_filter.note_name} ({note_filter.note_number})"
+                    note_grid.prop(note_filter, "selected", text=label)
                 
                 if len(track.note_filters) > display_limit:
                     filter_box.label(text=f"... and {len(track.note_filters) - display_limit} more notes", icon='INFO')

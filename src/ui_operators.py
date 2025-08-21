@@ -374,8 +374,53 @@ class MIDIPOSE_OT_render_animation(Operator):
         )
         
         # Render the animation
-        if render_animation(config, note_frames):
-            self.report({'INFO'}, f"Rendered {len(note_frames)} keyframes")
+        success, pose_mapping = render_animation(config, note_frames)
+        
+        if success:
+            # Print detailed table of pose assignments
+            print("\n" + "="*80)
+            print("ANIMATION GENERATION COMPLETE")
+            print("="*80)
+            
+            # Calculate bar/beat for each frame
+            fps = scene.render.fps
+            frames_per_beat = (60.0 / props.bpm) * fps
+            frames_per_bar = frames_per_beat * props.beats_per_bar
+            
+            # Print table header
+            print(f"\n{'Frame':<10} {'Bar:Beat':<12} {'Pose':<30} {'Track':<20}")
+            print("-" * 72)
+            
+            # Print pose assignments
+            for frame, pose_name in pose_mapping:
+                # Calculate bar and beat
+                frame_offset = frame - 1
+                bar = int(frame_offset / frames_per_bar) + 1
+                remaining_frames = frame_offset % frames_per_bar
+                beat = int(remaining_frames / frames_per_beat) + 1
+                
+                # Format bar:beat
+                bar_beat = f"{bar}:{beat}"
+                
+                # Get track info (first selected track for display)
+                track_info = selected_tracks[0].name if selected_tracks else "Multiple"
+                
+                print(f"{frame:<10} {bar_beat:<12} {pose_name:<30} {track_info:<20}")
+            
+            print("-" * 72)
+            print(f"\nTotal Events: {len(pose_mapping)}")
+            print(f"Animation Mode: {props.animation_mode}")
+            print(f"Cycle Mode: {props.pose_cycle_mode}")
+            print(f"BPM: {props.bpm} | FPS: {fps}")
+            
+            if props.frames_to_hold > 0:
+                print(f"Hold Frames: {props.frames_to_hold}")
+            print(f"Interpolation: {props.interpolation_type}")
+            
+            print("="*80 + "\n")
+            sys.stdout.flush()
+            
+            self.report({'INFO'}, f"Generated {len(pose_mapping)} pose events - see console for details")
         else:
             self.report({'ERROR'}, "Failed to render animation")
             return {'CANCELLED'}
