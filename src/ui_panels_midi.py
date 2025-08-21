@@ -143,10 +143,8 @@ class MIDIPOSE_PT_midi_notes(Panel, MidiPosePanel):
     bl_order = 2
     
     def draw_header(self, context):
-        props = context.scene.midi_pose_props
-        row = self.layout.row(align=True)
-        row.label(text="", icon='FILTER')
-        row.prop(props, "filter_notes", text="")
+        # Just show icon, no global toggle since we have per-track filters
+        self.layout.label(text="", icon='FILTER')
     
     def draw(self, context):
         layout = self.layout
@@ -168,9 +166,9 @@ class MIDIPOSE_PT_midi_notes(Panel, MidiPosePanel):
             # Track header with collapsible filter toggle
             row = box.row(align=True)
             
-            # Collapse/expand icon
+            # Collapse/expand icon - use toggle property
             icon = 'TRIA_DOWN' if track.filter_notes else 'TRIA_RIGHT'
-            row.prop(track, "filter_notes", text="", icon=icon, emboss=False)
+            row.prop(track, "filter_notes", text="", icon=icon, emboss=False, toggle=True)
             
             # Track name and info
             if track.is_dynamic:

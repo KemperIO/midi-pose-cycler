@@ -105,6 +105,7 @@ def render_animation(config: RenderConfig, note_frames: List[int]) -> tuple:
     # Get the active object
     obj = bpy.context.active_object
     if not obj:
+        print("ERROR: No active object selected for animation")
         return False, []
     
     # Get pose actions
@@ -113,8 +114,15 @@ def render_animation(config: RenderConfig, note_frames: List[int]) -> tuple:
         pose_action = bpy.data.actions.get(pose_name)
         if pose_action:
             pose_actions.append(pose_action)
+        else:
+            print(f"WARNING: Pose action '{pose_name}' not found")
     
-    if not pose_actions or not note_frames:
+    if not pose_actions:
+        print(f"ERROR: No valid pose actions found from: {config.poses}")
+        return False, []
+    
+    if not note_frames:
+        print("ERROR: No note frames to animate")
         return False, []
     
     # Track pose mapping for output

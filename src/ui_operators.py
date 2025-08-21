@@ -283,6 +283,7 @@ class MIDIPOSE_OT_render_animation(Operator):
         
         # Gather note events from all selected tracks
         all_note_frames = []
+        all_note_tones = []  # For pitch follow mode
         
         # Determine frame limit
         max_frames = props.frame_limit if props.use_frame_limit else props.total_frames
@@ -325,20 +326,42 @@ class MIDIPOSE_OT_render_animation(Operator):
                             target_notes.add(note_filter.note_number)
                 
                 # Get note events for this track
-                track_frames = get_note_events_for_track(
-                    props.midi_file,
-                    track.name,
-                    target_notes,
-                    scene.render.fps,
-                    max_frames
-                )
-                
-                if track_frames:
-                    all_note_frames.extend(track_frames)
-                    print(f"Track '{track.name}': {len(track_frames)} note events")
+                if props.pose_cycle_mode == 'PITCH_FOLLOW':
+                    # Need both frames and tones for pitch follow
+                    from .midi_core import get_note_events_with_tones
+                    track_frames, track_tones = get_note_events_with_tones(
+                        props.midi_file,
+                        track.name,
+                        target_notes,
+                        scene.render.fps,
+                        max_frames
+                    )
+                    if track_frames:
+                        all_note_frames.extend(track_frames)
+                        all_note_tones.extend(track_tones)
+                        print(f"Track '{track.name}': {len(track_frames)} note events with tones")
+                else:
+                    # Just get frames for other modes
+                    track_frames = get_note_events_for_track(
+                        props.midi_file,
+                        track.name,
+                        target_notes,
+                        scene.render.fps,
+                        max_frames
+                    )
+                    if track_frames:
+                        all_note_frames.extend(track_frames)
+                        print(f"Track '{track.name}': {len(track_frames)} note events")
         
-        # Sort all frames chronologically
-        note_frames = sorted(all_note_frames)
+        # Sort all frames chronologically (and tones if pitch follow)
+        if props.pose_cycle_mode == 'PITCH_FOLLOW' and all_note_tones:
+            # Sort both frames and tones together
+            combined = sorted(zip(all_note_frames, all_note_tones))
+            note_frames = [f for f, t in combined]
+            note_tones = [t for f, t in combined]
+        else:
+            note_frames = sorted(all_note_frames)
+            note_tones = None
         
         if not note_frames:
             warning_msg = f"No matching notes found in selected tracks"
@@ -374,7 +397,8 @@ class MIDIPOSE_OT_render_animation(Operator):
             action_name=props.action_name,
             pose_cycle_mode=props.pose_cycle_mode,
             animation_mode=props.animation_mode,
-            start_frame=start_frame
+            start_frame=start_frame,
+            note_tones=note_tones  # Pass tone data for pitch follow
         )
         
         # Render the animation
