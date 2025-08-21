@@ -66,6 +66,7 @@ classes = [
     ui_operators.MIDIPOSE_OT_select_all_notes,
     ui_operators.MIDIPOSE_OT_deselect_all_notes,
     ui_operators.MIDIPOSE_OT_invert_note_selection,
+    ui_operators.MIDIPOSE_OT_set_action_name,
     ui_operators.MIDIPOSE_OT_select_all_track_notes,
     ui_operators.MIDIPOSE_OT_deselect_all_track_notes,
     ui_operators.MIDIPOSE_OT_invert_track_notes,

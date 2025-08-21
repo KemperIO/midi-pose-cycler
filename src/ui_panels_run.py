@@ -166,22 +166,34 @@ class MIDIPOSE_PT_run_action(Panel, MidiPosePanel):
         
         col = layout.column()
         
-        # Action selection dropdown
+        # Action selection dropdown - just use text field for simplicity
         row = col.row()
         row.label(text="Action:")
-        row.prop_search(props, "action_name", bpy.data, "actions", text="")
+        row.prop(props, "action_name", text="")
+        
+        # Helper text about action selection
+        row = col.row()
+        row.scale_y = 0.7
+        row.label(text="Enter action name or create new", icon='INFO')
         
         # Create new action button
         row = col.row()
         row.operator("action.new", text="New Action", icon='ADD')
         
-        # Warning if action exists
-        action = bpy.data.actions.get(props.action_name)
-        if action and action.fcurves and any(fc.keyframe_points for fc in action.fcurves):
-            box = col.box()
-            box.alert = True
-            box.label(text="⚠️ Action has keyframes!", icon='ERROR')
-            box.prop(props, "skip_keyframe_warning", text="Don't warn about overwriting")
+        # Warning if action exists and has keyframes
+        if props.action_name:  # Only check if action name is set
+            action = bpy.data.actions.get(props.action_name)
+            if action and action.fcurves:
+                # Check if action actually has keyframes
+                has_keyframes = any(fc.keyframe_points for fc in action.fcurves)
+                if has_keyframes:
+                    box = col.box()
+                    box.alert = True
+                    # Yellow warning color through alert flag
+                    col_warn = box.column()
+                    col_warn.alert = True
+                    col_warn.label(text="⚠️ Action has keyframes!", icon='ERROR')
+                    box.prop(props, "skip_keyframe_warning", text="Don't warn about overwriting")
         
         col.separator()
         

@@ -806,6 +806,46 @@ class MIDIPOSE_OT_invert_note_selection(Operator):
             note.selected = not note.selected
         return {'FINISHED'}
 
+class MIDIPOSE_OT_set_action_name(Operator):
+    """Set the action name from dropdown"""
+    bl_idname = "midipose.set_action_name"
+    bl_label = "Set Action"
+    bl_options = {'REGISTER', 'UNDO'}
+    
+    action_name: StringProperty(
+        name="Action Name",
+        description="Name of the action to use",
+        default=""
+    )
+    
+    def execute(self, context):
+        props = context.scene.midi_pose_props
+        props.action_name = self.action_name
+        return {'FINISHED'}
+
+# Utility functions for actions
+def get_dope_sheet_actions(self, context):
+    """Get only dope sheet actions, not asset library poses"""
+    items = []
+    for action in bpy.data.actions:
+        # Skip actions from asset library or that are marked as assets
+        # Check multiple conditions to filter out asset library items:
+        # 1. Actions from linked libraries
+        # 2. Actions with asset_data are from asset library
+        if action.library:
+            continue  # Skip linked library actions
+        if hasattr(action, 'asset_data') and action.asset_data:
+            continue  # Skip asset library items
+        
+        # Add to list
+        items.append((action.name, action.name, ""))
+    
+    # Ensure at least one item
+    if not items:
+        items.append(("", "(No actions available)", ""))
+    
+    return items
+
 # Smart control update functions
 def update_frame_from_bars(self, context):
     """Update frame numbers when bar/beat values change"""
