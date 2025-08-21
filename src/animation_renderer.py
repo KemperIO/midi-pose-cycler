@@ -189,7 +189,27 @@ def render_animation(config: RenderConfig, note_frames: List[int]) -> tuple:
     else:
         action = bpy.data.actions.new(name=config.action_name)
     
+    # Assign the action
     obj.animation_data.action = action
+    
+    # CRITICAL: For Blender 4.4+, we need to create and assign an action slot
+    # This fixes the "Legacy slot" issue where keyframes don't show properly
+    if hasattr(action, 'slots'):
+        # Blender 4.4+ with slotted actions
+        # Check if we already have a slot
+        slot = None
+        # ActionSlot objects don't have a name attribute in the API
+        # We'll reuse the first slot if it exists, otherwise create new
+        if len(action.slots) > 0:
+            slot = action.slots[0]  # Reuse existing slot
+        else:
+            # Create a new slot for this object
+            # For armatures, we use 'OBJECT' type
+            slot = action.slots.new('OBJECT', obj.name)
+        
+        # Assign the slot to the animation data
+        obj.animation_data.action_slot = slot
+        print(f"Assigned action slot for Blender 4.4+ compatibility")
     
     pose_index = 0
     direction = 1  # For boomerang mode
