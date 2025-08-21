@@ -11,6 +11,15 @@ bl_info = {
 import bpy
 from bpy.props import PointerProperty
 import importlib
+import sys
+import os
+
+# Ensure vendor path is in sys.path for mido
+addon_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(addon_dir)
+vendor_dir = os.path.join(parent_dir, 'vendor')
+if vendor_dir not in sys.path:
+    sys.path.insert(0, vendor_dir)
 
 # Import all modules with reload for development
 from . import midi_core

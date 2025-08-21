@@ -9,12 +9,51 @@ Opinionated Blender extension for synchronizing pose/action animations to MIDI e
 
 **Dev Rules**: Be pithy. Multi-task format: `** task1` `** task2` = complete all.
 
-**CRITICAL**: Run `test_no_errors.py` on EVERY prompt to verify no console errors:
+## CRITICAL TESTING RULES - ALWAYS FOLLOW
+
+### 1. NEVER RUN BLENDER DIRECTLY
+**WRONG**: 
 ```bash
-/mnt/c/Program Files/Blender Foundation/Blender 4.5/blender.exe --background --factory-startup --python test/test_no_errors.py
+/mnt/c/Program Files/Blender Foundation/Blender 4.5/blender.exe --background --factory-startup --python test/test.py
 ```
 
-**Bash Permissions**: `Bash("/mnt/c/Program Files/Blender Foundation/Blender 4.5/blender.exe" --background --factory-startup --python test/*.py)`
+**CORRECT**: Use Python wrapper scripts:
+```bash
+python test/run_test_wrapper.py test_name
+```
+
+### 2. ALWAYS RUN TESTS AFTER EVERY CODE CHANGE
+- Run `test_no_errors.py` after EVERY code modification
+- Run `test_midi_simple.py` after ANY MIDI-related changes
+- Run `test_midi_operator.py` to test ACTUAL USER EXPERIENCE (not just core functions!)
+- Check console logs for errors BEFORE responding to user
+- NEVER commit or finish without running tests
+- CRITICAL: Test the OPERATORS that users actually use, not just backend functions!
+
+### 3. TEST WRAPPER PATTERN
+Create wrapper scripts that handle Blender execution:
+```python
+# run_test_wrapper.py
+import subprocess
+import sys
+
+def run_blender_test(test_file):
+    cmd = [
+        "/mnt/c/Program Files/Blender Foundation/Blender 4.5/blender.exe",
+        "--background", 
+        "--factory-startup",
+        "--python", test_file
+    ]
+    return subprocess.run(cmd, capture_output=True, text=True)
+```
+
+### 4. MIDO RELOAD ERROR FIX
+The "ERROR: mido library not available" on reload is a known issue. Always check and fix:
+- Ensure mido is checked in sys.modules before reimporting
+- Add vendor path to sys.path before any imports
+- Test with script reload to verify no errors
+
+**Bash Permissions**: Only use wrappers: `Bash("python test/run_test_wrapper.py test_name")`
 
 ### Architecture
 - **Node-Based System**: Visual node tree for MIDI animation pipeline

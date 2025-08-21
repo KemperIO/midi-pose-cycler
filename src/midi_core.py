@@ -14,9 +14,50 @@ def import_bundled_mido():
         return sys.modules['mido']
     
     # Get the path to our bundled mido (vendor is at root, not in src)
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    parent_dir = os.path.dirname(current_dir)  # Go up from src to root
-    vendor_dir = os.path.join(parent_dir, 'vendor')
+    # Use __file__ to get current module path
+    try:
+        current_file = __file__
+    except NameError:
+        # If __file__ is not defined, try to get it from the frame
+        import inspect
+        current_file = inspect.getfile(inspect.currentframe())
+    
+    current_dir = os.path.dirname(os.path.abspath(current_file))
+    
+    # Check multiple possible vendor locations
+    vendor_candidates = [
+        os.path.join(current_dir, 'vendor'),  # vendor in same dir as this file
+        os.path.join(os.path.dirname(current_dir), 'vendor'),  # vendor in parent dir
+    ]
+    
+    # Find the first existing vendor directory
+    vendor_dir = None
+    for candidate in vendor_candidates:
+        if os.path.exists(os.path.join(candidate, 'mido', '__init__.py')):
+            vendor_dir = candidate
+            break
+    
+    if vendor_dir is None:
+        # Fallback logic if vendor not found yet
+        if current_dir.endswith('src'):
+            # Development: vendor might be at ../vendor from src/
+            parent_dir = os.path.dirname(current_dir)
+            vendor_dir = os.path.join(parent_dir, 'vendor')
+        elif 'midi-pose-cycler' in current_dir:
+            # Installed addon: vendor is at midi-pose-cycler/vendor
+            # Find the midi-pose-cycler directory
+            parts = current_dir.split(os.sep)
+            for i, part in enumerate(parts):
+                if part == 'midi-pose-cycler':
+                    addon_root = os.sep.join(parts[:i+1])
+                    vendor_dir = os.path.join(addon_root, 'vendor')
+                    break
+            else:
+                vendor_dir = os.path.join(current_dir, 'vendor')
+        else:
+            # Fallback: assume vendor is in same directory
+            vendor_dir = os.path.join(current_dir, 'vendor')
+    
     mido_path = os.path.join(vendor_dir, 'mido', '__init__.py')
     
     if not os.path.exists(mido_path):
@@ -46,7 +87,16 @@ def import_bundled_mido():
         # Silently fail - mido might be installed globally
         return None
 
-# Try to import mido
+# Try to import mido - reimport each time to ensure it's available
+def get_mido():
+    """Get mido module, importing if necessary"""
+    global mido, MIDO_AVAILABLE
+    if mido is None:
+        mido = import_bundled_mido()
+        MIDO_AVAILABLE = mido is not None
+    return mido
+
+# Initial import
 mido = import_bundled_mido()
 MIDO_AVAILABLE = mido is not None
 
@@ -78,12 +128,14 @@ def midi_note_to_name(note: int) -> str:
 
 def analyze_midi_file(file_path: str) -> Optional[MidiAnalysis]:
     """Analyze a MIDI file and return track information"""
-    if not MIDO_AVAILABLE or not mido:
+    # Try to get mido, reimporting if necessary
+    mido_module = get_mido()
+    if not mido_module:
         print("ERROR: mido library not available")
         return None
         
     try:
-        mid = mido.MidiFile(file_path)
+        mid = mido_module.MidiFile(file_path)
         print(f"Successfully loaded MIDI file: {file_path}")
     except Exception as e:
         print(f"Error loading MIDI file: {e}")
@@ -192,12 +244,14 @@ def analyze_midi_file(file_path: str) -> Optional[MidiAnalysis]:
 def get_note_events_for_track(file_path: str, track_name: str, target_notes: Optional[Set[int]], 
                             fps: int, max_frames: int) -> List[int]:
     """Extract frame timing of specific MIDI notes from a track"""
-    if not MIDO_AVAILABLE or not mido:
+    # Try to get mido, reimporting if necessary
+    mido_module = get_mido()
+    if not mido_module:
         print("ERROR: mido not available in get_note_events_for_track")
         return []
         
     try:
-        mid = mido.MidiFile(file_path)
+        mid = mido_module.MidiFile(file_path)
         print(f"DEBUG: Loading MIDI for track extraction: {track_name}")
     except Exception as e:
         print(f"Error loading MIDI file: {e}")
