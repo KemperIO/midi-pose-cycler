@@ -165,7 +165,7 @@ class MIDIPOSE_PT_properties_main(Panel, MidiPosePanel):
     # Config actions
     row = col.row(align=True)
     row.operator("midipose.save_config", text="Save", icon='FILE_TICK')
-    row.operator("midipose.save_config_as", text="Save As", icon='SAVEAS')
+    row.operator("midipose.save_config_as", text="Save As", icon='FILE_NEW')
     
     row = col.row(align=True)
     row.operator("midipose.load_config", text="Load", icon='FILE_FOLDER')
@@ -179,8 +179,8 @@ class MIDIPOSE_PT_properties_main(Panel, MidiPosePanel):
     row.scale_y = 2.0
     
     # Enable button only if we have required data
-    can_generate = (props.midi_file and 
-                   props.selected_track and 
+    can_generate = (bool(props.midi_file) and 
+                   bool(props.selected_track) and 
                    any(p.selected for p in props.pose_items))
     
     row.enabled = can_generate
@@ -232,33 +232,44 @@ class MIDIPOSE_PT_properties_poses(Panel, MidiPosePanel):
     
     layout.separator()
     
-    # Pose list with ordering
+    # Pose Selection - Grid Flow
     box = layout.box()
+    box.label(text="Select Poses:", icon='CHECKBOX_HLT')
     
+    # Use grid flow for pose selection
+    grid = box.grid_flow(columns=2, align=True)
+    
+    for pose in props.pose_items:
+      # Check if action exists
+      action = bpy.data.actions.get(pose.name)
+      icon = 'ACTION' if action else 'POSE_HLT'
+      
+      # Create row for checkbox and label
+      row = grid.row(align=True)
+      row.prop(pose, "selected", text="")
+      row.label(text=pose.name, icon=icon)
+    
+    # Pose Ordering - Separate Section
     selected_poses = [p for p in props.pose_items if p.selected]
     
-    # Show selected poses in order
     if selected_poses:
-      box.label(text=f"Selected Poses ({len(selected_poses)}):", icon='CHECKBOX_HLT')
+      layout.separator()
       
-      for i, pose in enumerate(props.pose_items):
-        if not pose.selected:
-          continue
-        
-        row = box.row(align=True)
+      # Order box
+      order_box = layout.box()
+      order_box.label(text=f"Pose Order ({len(selected_poses)} selected):", icon='SORT_ASC')
+      
+      # Sort selected poses by order_index for display
+      selected_poses.sort(key=lambda p: p.order_index)
+      
+      for i, pose in enumerate(selected_poses):
+        row = order_box.row(align=True)
         
         # Order number
-        order = selected_poses.index(pose) + 1
-        row.label(text=f"#{order}")
+        row.label(text=f"#{i+1}")
         
         # Pose name
-        row.prop(pose, "selected", text="", icon='CHECKBOX_HLT')
-        
-        # Check if action exists
-        action = bpy.data.actions.get(pose.name)
-        icon = 'ACTION' if action else 'POSE_HLT'
-        
-        row.label(text=pose.name, icon=icon)
+        row.label(text=pose.name, icon='ACTION' if bpy.data.actions.get(pose.name) else 'POSE_HLT')
         
         # Move up/down buttons
         sub = row.row(align=True)
@@ -268,33 +279,13 @@ class MIDIPOSE_PT_properties_poses(Panel, MidiPosePanel):
         op = sub.operator("midipose.move_pose", text="", icon='TRIA_UP')
         op.direction = 'UP'
         op.pose_name = pose.name
-        sub.enabled = order > 1
+        sub.enabled = i > 0
         
         # Move down
         op = sub.operator("midipose.move_pose", text="", icon='TRIA_DOWN')
         op.direction = 'DOWN'
         op.pose_name = pose.name
-        sub.enabled = order < len(selected_poses)
-      
-      box.separator()
-    
-    # Unselected poses
-    unselected = [p for p in props.pose_items if not p.selected]
-    if unselected:
-      box.label(text=f"Available Poses ({len(unselected)}):", icon='CHECKBOX_DEHLT')
-      
-      for pose in unselected:
-        row = box.row(align=True)
-        
-        # Checkbox
-        row.prop(pose, "selected", text="", icon='CHECKBOX_DEHLT')
-        
-        # Check if action exists
-        action = bpy.data.actions.get(pose.name)
-        icon = 'ACTION' if action else 'POSE_HLT'
-        
-        # Name
-        row.label(text=pose.name, icon=icon)
+        sub.enabled = i < len(selected_poses) - 1
     
     # Summary
     layout.separator()
@@ -397,41 +388,47 @@ class MIDIPOSE_PT_properties_midi(Panel, MidiPosePanel):
       if props.filter_notes:
         row.label(text="", icon='FILTER')
         
-        # Note list with nicknames
+        # Note Selection - Grid Flow
         note_box = box.box()
+        note_box.label(text="Select Notes:", icon='FILTER')
         
-        # Header
-        row = note_box.row()
-        row.label(text="Note")
-        row.label(text="Nickname")
-        row.label(text="Count")
+        # Use grid flow for note selection
+        grid = note_box.grid_flow(columns=2, align=True)
         
-        note_box.separator()
-        
-        # List notes (limit display for performance)
-        display_limit = 20
+        # Show notes with checkbox and info
+        display_limit = 30
         for i, note in enumerate(props.note_items):
           if i >= display_limit:
-            note_box.label(text=f"... and {len(props.note_items) - display_limit} more")
             break
           
-          row = note_box.row(align=True)
-          
-          # Selection checkbox
+          row = grid.row(align=True)
           row.prop(note, "selected", text="")
           
-          # Note name
-          sub = row.row()
-          sub.scale_x = 0.3
-          sub.label(text=note.note_name)
+          # Note info with nickname if present
+          if note.nickname:
+            row.label(text=f"{note.note_name} ({note.nickname}) [{note.count}]")
+          else:
+            row.label(text=f"{note.note_name} [{note.count}]")
+        
+        if len(props.note_items) > display_limit:
+          note_box.label(text=f"... and {len(props.note_items) - display_limit} more notes")
+        
+        # Nickname editing in separate section
+        note_box.separator()
+        note_box.label(text="Edit Nicknames:", icon='OUTLINER_DATA_GP_LAYER')
+        
+        # Only show selected notes for nickname editing
+        selected_notes = [n for n in props.note_items if n.selected]
+        if selected_notes:
+          for note in selected_notes[:10]:  # Limit to 10 for performance
+            row = note_box.row(align=True)
+            row.label(text=f"{note.note_name}:")
+            row.prop(note, "nickname", text="")
           
-          # Nickname field
-          row.prop(note, "nickname", text="")
-          
-          # Count
-          sub = row.row()
-          sub.scale_x = 0.3
-          sub.label(text=str(note.count))
+          if len(selected_notes) > 10:
+            note_box.label(text=f"... and {len(selected_notes) - 10} more selected notes")
+        else:
+          note_box.label(text="Select notes to edit nicknames")
         
         # Summary of nicknamed notes
         nicknamed_notes = [(n.note_name, n.nickname) 

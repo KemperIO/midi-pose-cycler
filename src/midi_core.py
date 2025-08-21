@@ -7,6 +7,11 @@ import os
 def import_bundled_mido():
     """Import the bundled mido library"""
     import importlib.util
+    import importlib
+    
+    # Check if mido is already imported and return it
+    if 'mido' in sys.modules:
+        return sys.modules['mido']
     
     # Get the path to our bundled mido (vendor is at root, not in src)
     current_dir = os.path.dirname(os.path.abspath(__file__))
