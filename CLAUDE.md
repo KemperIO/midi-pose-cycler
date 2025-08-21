@@ -9,6 +9,11 @@ Opinionated Blender extension for synchronizing pose/action animations to MIDI e
 
 **Dev Rules**: Be pithy. Multi-task format: `** task1` `** task2` = complete all.
 
+**CRITICAL**: Run `test_no_errors.py` on EVERY prompt to verify no console errors:
+```bash
+/mnt/c/Program Files/Blender Foundation/Blender 4.5/blender.exe --background --factory-startup --python test/test_no_errors.py
+```
+
 **Bash Permissions**: `Bash("/mnt/c/Program Files/Blender Foundation/Blender 4.5/blender.exe" --background --factory-startup --python test/*.py)`
 
 ### Architecture
@@ -41,66 +46,34 @@ Copy to: `[BLENDER]/4.5/extensions/midi-pose-cycler/`
 
 ## Usage Workflows
 
-### Node-Based Workflow (Visual)
+### Panel-Based UI (N-Pane)
 
-#### 1. Setup Node Workspace
-```
-Window menu → MIDI Pose Nodes
-```
+#### Access
+In 3D Viewport, press **N** to open sidebar → Click **"MidiPoseCycler"** tab
 
-Creates node-based workspace:
+**Available in**: Object Mode & Pose Mode
 
-| Pane          | Location     | Purpose                          |
-|---------------|--------------|----------------------------------|
-| File Browser  | top left     | Drag MIDI files                  |
-| Asset Browser | bot left     | Drag pose actions                |
-| Node Editor   | middle       | Visual workflow canvas           |
-| 3D Viewport   | top right    | Preview animation                |
-| Outliner      | bot right    | Rig selection                    |
-| Action Editor | bottom       | View generated keyframes         |
-| Sequencer     | very bottom  | Audio timeline reference         |
+#### Panel Layout
+Three panels in the MidiPoseCycler tab:
 
-#### 2. Build Node Tree
-Connect nodes in sequence:
-```
-[MIDI Input] → [Track Selector] → [Note Filter] → [Timing] → [Animation Output]
-                                                       ↑
-[Pose Input] → [Pose Sequence] ─────────────────────┘
-```
+| Panel | Purpose |
+|-------|----------|
+| **MIDI Pose Cycler - Controls** | Main settings: MIDI file, action name, timing, configs |
+| **Poses** | Select and order pose actions |
+| **MIDI Data** | Track selection and note filtering |
 
-#### 3. Configure & Generate
-- Load MIDI file in MIDI Input node
-- Select track in Track Selector
-- Set filter mode (ALL/Include/Exclude/Range)
-- Configure poses and cycle mode
-- Set timing parameters
-- Click "GENERATE ANIMATION"
+#### Workflow
+1. **Load MIDI**: Click "Load MIDI File" or drag from File Browser
+2. **Select Track**: Click track name in MIDI Data panel
+3. **Choose Poses**: Select poses in Poses panel, reorder with arrows
+4. **Configure**: Set animation mode, timing, interpolation
+5. **Generate**: Click "GENERATE ANIMATION" button
 
-### Traditional Panel Workflow
-
-#### 1. Setup Panel Workspace
-```
-Window menu → MIDI Pose Cycler
-```
-
-Creates panel-based workspace with 8 areas (aka pane/panel):
-
-| Pane             | Location    | Purpose                                  |
-|------------------|-------------|------------------------------------------|
-| File Browser     | left top    | Browse and drag MIDI files              |
-| Asset Browser    | left bottom | Browse and drag pose actions            |
-| 3D Viewport      | middle      | Preview animation                       |
-| Action Editor    | bottom      | View generated keyframes                |
-| Sequencer        | very bottom | Audio timeline reference                |
-| Properties-Main  | right top   | Main controls and settings              |
-| Properties-Poses | right mid   | Pose selection and ordering             |
-| Properties-MIDI  | right bot   | MIDI tracks and notes                   |
-
-### 2. Prepare Content
+#### Prepare Content
 - Create pose actions (frame 0)
 - Name descriptively (avoid "Midi" prefix)
 
-### 3. Load & Configure
+#### Key Settings
 
 | Step         | Action                                    |
 |--------------|-------------------------------------------|
@@ -110,8 +83,12 @@ Creates panel-based workspace with 8 areas (aka pane/panel):
 | Set Mode     | POSE (single frame) or ACTION (full)     |
 | Config Timing| BPM, bars/beats or frame numbers         |
 
-### 4. Generate
+#### Generate Animation
 Click "GENERATE ANIMATION" → Creates/updates action with keyframes
+
+### Legacy Workflows (Deprecated)
+
+**Note**: Node-based workflow and workspace generation have been removed. Use the N-pane UI instead.
 
 ## Node Types Reference
 
@@ -274,6 +251,7 @@ python test/run_tests.py addon_load
 ```
 
 ### Test Coverage
+- **test_no_errors**: Verifies addon loads without console errors (RUN THIS ALWAYS!)
 - **addon_load**: Verifies registration of operators, panels, properties
 - **workspace**: Tests workspace creation and layout validation
 
@@ -285,6 +263,7 @@ python test/run_tests.py addon_load
 
 ## Development Notes
 
+**IMPORTANT**: Always run `test_no_errors.py` on EVERY code change to ensure no console errors.
 **IMPORTANT**: Always run tests when changing workspace setup logic to verify workspace generation works without crashes.
 
 ### Workspace-Specific Panels

@@ -7,21 +7,20 @@ import bpy
 from bpy.types import Panel
 import os
 
-# Base class for workspace-specific panels
-class MidiPoseWorkspacePanel:
-  bl_space_type = 'PROPERTIES'
-  bl_region_type = 'WINDOW'
-  bl_context = "scene"
+# Base class for MIDI Pose panels
+class MidiPosePanel:
+  bl_space_type = 'VIEW_3D'
+  bl_region_type = 'UI'
+  bl_category = "MidiPoseCycler"
   
   @classmethod
   def poll(cls, context):
-    # Only show in MIDI Pose Cycler workspace
-    return (context.workspace.name == "MIDI Pose Cycler" or
-            context.scene.get('midi_pose_workspace') == "MIDI Pose Cycler")
+    # Show in object and pose modes
+    return context.mode in ('OBJECT', 'POSE')
 
 
 # MAIN PANEL - Controls and settings
-class MIDIPOSE_PT_properties_main(Panel, MidiPoseWorkspacePanel):
+class MIDIPOSE_PT_properties_main(Panel, MidiPosePanel):
   """Main control panel"""
   bl_label = "MIDI Pose Cycler - Controls"
   bl_idname = "MIDIPOSE_PT_properties_main"
@@ -199,7 +198,7 @@ class MIDIPOSE_PT_properties_main(Panel, MidiPoseWorkspacePanel):
 
 
 # POSES PANEL - Pose selection and ordering
-class MIDIPOSE_PT_properties_poses(Panel, MidiPoseWorkspacePanel):
+class MIDIPOSE_PT_properties_poses(Panel, MidiPosePanel):
   """Pose selection panel"""
   bl_label = "Poses"
   bl_idname = "MIDIPOSE_PT_properties_poses"
@@ -319,7 +318,7 @@ class MIDIPOSE_PT_properties_poses(Panel, MidiPoseWorkspacePanel):
 
 
 # MIDI PANEL - Track selection and note filtering
-class MIDIPOSE_PT_properties_midi(Panel, MidiPoseWorkspacePanel):
+class MIDIPOSE_PT_properties_midi(Panel, MidiPosePanel):
   """MIDI data panel"""
   bl_label = "MIDI Data"
   bl_idname = "MIDIPOSE_PT_properties_midi"

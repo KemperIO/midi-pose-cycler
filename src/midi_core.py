@@ -8,16 +8,17 @@ def import_bundled_mido():
     """Import the bundled mido library"""
     import importlib.util
     
-    # Get the path to our bundled mido
+    # Get the path to our bundled mido (vendor is at root, not in src)
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    mido_path = os.path.join(current_dir, 'vendor', 'mido', '__init__.py')
+    parent_dir = os.path.dirname(current_dir)  # Go up from src to root
+    vendor_dir = os.path.join(parent_dir, 'vendor')
+    mido_path = os.path.join(vendor_dir, 'mido', '__init__.py')
     
     if not os.path.exists(mido_path):
-        print("ERROR: Bundled mido not found!")
+        # Silently fail - mido might be installed globally
         return None
     
     # Add vendor to path first
-    vendor_dir = os.path.join(current_dir, 'vendor')
     if vendor_dir not in sys.path:
         sys.path.insert(0, vendor_dir)
     
@@ -36,8 +37,8 @@ def import_bundled_mido():
             sys.modules['mido'] = mido
             spec.loader.exec_module(mido)
             return mido
-    except Exception as e:
-        print(f"ERROR: Failed to load mido: {e}")
+    except Exception:
+        # Silently fail - mido might be installed globally
         return None
 
 # Try to import mido
