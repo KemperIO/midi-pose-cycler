@@ -241,6 +241,31 @@ def analyze_midi_file(file_path: str) -> Optional[MidiAnalysis]:
         tracks=tracks_info
     )
 
+def generate_dynamic_events(interval_beats: float, bpm: float, fps: int, max_frames: int, start_frame: int = 1) -> List[int]:
+    """Generate events at regular beat intervals
+    
+    Args:
+        interval_beats: Generate event every X beats
+        bpm: Beats per minute  
+        fps: Frames per second
+        max_frames: Maximum frames to generate
+        start_frame: Starting frame
+        
+    Returns:
+        List of frame numbers where events should occur
+    """
+    frames_per_beat = (60.0 / bpm) * fps
+    frames_per_interval = interval_beats * frames_per_beat
+    
+    events = []
+    current_frame = start_frame
+    
+    while current_frame <= max_frames:
+        events.append(int(current_frame))
+        current_frame += frames_per_interval
+    
+    return events
+
 def get_note_events_for_track(file_path: str, track_name: str, target_notes: Optional[Set[int]], 
                             fps: int, max_frames: int) -> List[int]:
     """Extract frame timing of specific MIDI notes from a track"""

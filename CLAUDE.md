@@ -56,10 +56,22 @@ The "ERROR: mido library not available" on reload is a known issue. Always check
 **Bash Permissions**: Only use wrappers: `Bash("python test/run_test_wrapper.py test_name")`
 
 ### Architecture
-- **Node-Based System**: Visual node tree for MIDI animation pipeline
-- **Custom Node Types**: MIDI input, filtering, pose sequencing, timing control
-- **Dual Interface**: Node editor workflow or traditional properties panels
-- **Workspace Layouts**: Optimized layouts for both approaches
+- **Panel-Based System**: N-pane sidebar interface with three tabs
+- **Multi-Track Support**: Select and filter multiple MIDI tracks simultaneously
+- **Smart Controls**: Linked controls that update each other (frames ↔ bars/beats)
+- **Dynamic Tracks**: Generate events at regular intervals without MIDI data
+
+## UX Components Overview
+
+| Component | Blender Name | Description | Example Usage |
+|-----------|--------------|-------------|---------------|
+| **N-Pane Tabs** | `bl_category` | Sidebar tabs in 3D Viewport | MPC-Run, MPC-Pose, MPC-MIDI |
+| **Panels** | `Panel` class | Grouped UI sections | Track Selection, Pose Order |
+| **Collapsible Regions** | Box with toggle | Expandable UI sections | Note filters per track |
+| **Grid Flow** | `grid_flow()` | Multi-column checkbox layout | Track/pose selection |
+| **Property Fields** | `prop()` | Input fields and checkboxes | Hold Frames, BPM |
+| **Operators** | `Operator` class | Action buttons | Generate Animation, Load MIDI |
+| **Tooltips** | `description` property | Hover text explanations | Interpolation types |
 
 ## Features
 
@@ -70,8 +82,10 @@ The "ERROR: mido library not available" on reload is a known issue. Always check
 | **Pose Management**| Reorderable selection with drag handles             |
 | **Cycle Modes**    | LOOP, BOOMERANG, RANDOM                             |
 | **Timing Controls**| Smart (bars/beats) or dumb (frames)                 |
-| **Note Filtering** | Target specific MIDI notes with nicknames           |
-| **Interpolation**  | 13 types (CONSTANT, LINEAR, BEZIER, EXPO, etc.)     |
+| **Note Filtering** | Per-track collapsible filters with checkboxes       |
+| **Interpolation**  | 13 types with hover explanations                    |
+| **Dynamic Tracks** | Generate events at intervals (Every X beats/bars)   |
+| **Smart Controls** | Linked frame ↔ bar/beat conversion                  |
 
 ## Installation
 
@@ -218,6 +232,28 @@ MIDI File → Track Analysis → Note Events → Frame Timing → Keyframe Gener
 | `midi_start_frame`    | Int   | 1       | Animation start frame            |
 | `skip_keyframe_warning`| Bool  | False   | Suppress overwrite dialog        |
 
+### BPM Usage
+
+BPM is **ONLY** used in these specific cases:
+
+| Use Case | Description | Formula |
+|----------|-------------|---------|
+| **Smart Timing Start** | Convert bar/beat to frame | `frame = (bar-1) * beats_per_bar * frames_per_beat + (beat-1) * frames_per_beat + 1` |
+| **Smart Timing Duration** | Convert bars/beats to frames | `frames = bars * beats_per_bar * frames_per_beat + beats * frames_per_beat` |
+| **Dynamic Track** | Generate events at intervals | `frame = beat_number * frames_per_beat` |
+
+Where: `frames_per_beat = (60.0 / bpm) * fps`
+
+### Smart Controls
+
+Bi-directional controls that update each other:
+
+| Frame Control | Musical Control | Conversion |
+|---------------|-----------------|------------|
+| Start Frame | Start Bar/Beat | `bar = floor(frame / frames_per_bar) + 1` |
+| Duration Frames | Duration Bars/Beats | `bars = floor(frames / frames_per_bar)` |
+| Hold Frames | Hold Beats | `beats = frames / frames_per_beat` |
+
 ### Timing Calculation
 ```python
 # Smart timing (musical)
@@ -305,6 +341,7 @@ python test/run_test_wrapper.py test_midi_operator
 | **test_multitrack** | Multi-track selection | ✓ Multiple tracks can be selected<br>✓ Per-track note filters work<br>✓ Filter operators function |
 | **test_midi_operator** | User workflow | ✓ MIDI file loads via operator<br>✓ Tracks populate correctly<br>✓ Note selection works |
 | **test_midi_simple** | Core MIDI | ✓ mido library imports<br>✓ MIDI file analysis<br>✓ Track detection |
+| **test_dynamic_track** | Dynamic track events | ✓ Dynamic track properties<br>✓ Event generation at intervals<br>✓ Correct timing calculations |
 
 ### Writing New Tests
 1. Create `test/test_NAME.py` with `main()` function

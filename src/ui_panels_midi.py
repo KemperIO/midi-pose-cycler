@@ -115,38 +115,6 @@ class MIDIPOSE_PT_midi_tracks(Panel, MidiPosePanel):
             if track.note_count:
                 row.label(text=f"({track.note_count})")
         
-        # Show note filters for selected tracks
-        selected_tracks = [t for t in props.track_items if t.selected]
-        if selected_tracks:
-            layout.separator()
-            for track in selected_tracks:
-                if track.filter_notes:
-                    track_box = layout.box()
-                    track_box.label(text=f"{track.name} Note Filter:", icon='FILTER')
-                    
-                    # Quick selection
-                    row = track_box.row(align=True)
-                    row.scale_y = 0.8
-                    
-                    op = row.operator("midipose.select_all_track_notes", text="All")
-                    op.track_name = track.name
-                    
-                    op = row.operator("midipose.deselect_all_track_notes", text="None")
-                    op.track_name = track.name
-                    
-                    op = row.operator("midipose.invert_track_notes", text="Invert")
-                    op.track_name = track.name
-                    
-                    # Note grid
-                    if track.note_filters:
-                        note_grid = track_box.grid_flow(columns=3, align=True)
-                        for note_filter in track.note_filters[:12]:  # Limit display
-                            note_row = note_grid.row(align=True)
-                            note_row.prop(note_filter, "selected", text=note_filter.note_name)
-                        
-                        if len(track.note_filters) > 12:
-                            track_box.label(text=f"... and {len(track.note_filters) - 12} more notes")
-        
         # Selected track info
         if props.selected_track:
             layout.separator()
@@ -193,50 +161,94 @@ class MIDIPOSE_PT_midi_notes(Panel, MidiPosePanel):
             box.label(text="Select tracks in the Track Selection panel above")
             return
         
-        # Show note filters for each selected track
+        # Show collapsible note filters for each selected track
         for track in selected_tracks:
             box = layout.box()
             
-            # Track header with filter toggle
-            row = box.row()
-            row.label(text=f"{track.name}:", icon='NLA_PUSHDOWN')
-            row.prop(track, "filter_notes", text="Enable Filter", toggle=True)
+            # Track header with collapsible filter toggle
+            row = box.row(align=True)
             
-            if track.filter_notes and track.note_filters:
+            # Collapse/expand icon
+            icon = 'TRIA_DOWN' if track.filter_notes else 'TRIA_RIGHT'
+            row.prop(track, "filter_notes", text="", icon=icon, emboss=False)
+            
+            # Track name and info
+            if track.is_dynamic:
+                row.label(text=f"{track.name}", icon='TIME')
+            else:
+                row.label(text=f"{track.name}", icon='NLA_PUSHDOWN')
+            
+            # Note count summary
+            if track.is_dynamic:
+                # Show dynamic track settings
+                props = context.scene.midi_pose_props
+                if props.dynamic_interval_type == 'BEATS':
+                    row.label(text=f"(Every {props.dynamic_interval_beats} beats)")
+                else:
+                    row.label(text=f"(Every {props.dynamic_interval_bars} bars)")
+            elif track.filter_notes and track.note_filters:
+                selected_notes = sum(1 for n in track.note_filters if n.selected)
+                row.label(text=f"({selected_notes}/{len(track.note_filters)} notes)")
+            else:
+                row.label(text=f"({track.note_count} notes)")
+            
+            # Collapsible content
+            if track.is_dynamic and track.filter_notes:
+                # Show dynamic track configuration
+                filter_box = box.box()
+                filter_box.scale_y = 0.95
+                
+                props = context.scene.midi_pose_props
+                
+                # Interval type selector
+                row = filter_box.row()
+                row.label(text="Generate event every:")
+                row.prop(props, "dynamic_interval_type", text="")
+                
+                # Interval amount
+                if props.dynamic_interval_type == 'BEATS':
+                    filter_box.prop(props, "dynamic_interval_beats", text="Beats")
+                else:
+                    filter_box.prop(props, "dynamic_interval_bars", text="Bars")
+                
+                # Info
+                filter_box.separator(factor=0.5)
+                info = filter_box.row()
+                info.scale_y = 0.8
+                info.label(text=f"BPM: {props.bpm}", icon='TIME')
+                
+            elif track.filter_notes and track.note_filters:
+                # Inner box for filter content
+                filter_box = box.box()
+                filter_box.scale_y = 0.95
+                
                 # Quick selection buttons
-                row = box.row(align=True)
-                row.scale_y = 0.8
+                button_row = filter_box.row(align=True)
+                button_row.scale_y = 0.9
                 
-                op = row.operator("midipose.select_all_track_notes", text="All")
+                op = button_row.operator("midipose.select_all_track_notes", text="All")
                 op.track_name = track.name
                 
-                op = row.operator("midipose.deselect_all_track_notes", text="None")
+                op = button_row.operator("midipose.deselect_all_track_notes", text="None")
                 op.track_name = track.name
                 
-                op = row.operator("midipose.invert_track_notes", text="Invert")
+                op = button_row.operator("midipose.invert_track_notes", text="Invert")
                 op.track_name = track.name
                 
-                # Note selection grid - use grid flow for better layout
-                grid = box.grid_flow(columns=3, align=True)
+                filter_box.separator(factor=0.5)
+                
+                # Note selection grid
+                note_grid = filter_box.grid_flow(columns=3, align=True)
                 
                 display_limit = 15
                 for i, note_filter in enumerate(track.note_filters):
                     if i >= display_limit:
                         break
                     
-                    grid.prop(note_filter, "selected", text=note_filter.note_name)
+                    note_grid.prop(note_filter, "selected", text=note_filter.note_name)
                 
                 if len(track.note_filters) > display_limit:
-                    box.label(text=f"... and {len(track.note_filters) - display_limit} more notes")
-                
-                # Summary
-                selected_notes = sum(1 for n in track.note_filters if n.selected)
-                box.label(text=f"Using {selected_notes}/{len(track.note_filters)} notes")
-            else:
-                # Not filtering
-                info = box.row()
-                info.scale_y = 0.8
-                info.label(text=f"Using all {track.note_count} notes", icon='CHECKBOX_HLT')
+                    filter_box.label(text=f"... and {len(track.note_filters) - display_limit} more notes", icon='INFO')
 
 
 # Registration

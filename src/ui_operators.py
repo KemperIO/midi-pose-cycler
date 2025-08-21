@@ -43,6 +43,7 @@ class MIDIPOSE_OT_load_midi(Operator, ImportHelper):
                     item.note_count = track.note_count
                     item.track_index = track.index
                     item.selected = False  # Start unselected
+                    item.is_dynamic = False
                     
                     # Add note filters for this track
                     item.note_filters.clear()
@@ -54,6 +55,14 @@ class MIDIPOSE_OT_load_midi(Operator, ImportHelper):
                     
                     item.selected_note_count = len(track.notes)
                     seen_names.add(track.name)
+            
+            # Add dynamic track option
+            dynamic_track = props.track_items.add()
+            dynamic_track.name = "Every X Beats/Bars"
+            dynamic_track.note_count = 0
+            dynamic_track.track_index = -1  # Special index for dynamic track
+            dynamic_track.selected = False
+            dynamic_track.is_dynamic = True
             
             # Store the analysis data for later use (Blender ID properties format)
             context.scene['midi_analysis_bpm'] = analysis.bpm
@@ -275,26 +284,54 @@ class MIDIPOSE_OT_render_animation(Operator):
         max_frames = props.frame_limit if props.use_frame_limit else props.total_frames
         
         for track in selected_tracks:
-            # Build note filter for this track if enabled
-            target_notes = None
-            if track.filter_notes:
-                target_notes = set()
-                for note_filter in track.note_filters:
-                    if note_filter.selected:
-                        target_notes.add(note_filter.note_number)
-            
-            # Get note events for this track
-            track_frames = get_note_events_for_track(
-                props.midi_file,
-                track.name,
-                target_notes,
-                scene.render.fps,
-                max_frames
-            )
-            
-            if track_frames:
-                all_note_frames.extend(track_frames)
-                print(f"Track '{track.name}': {len(track_frames)} note events")
+            if track.is_dynamic:
+                # Generate dynamic events instead of reading MIDI
+                interval_beats = props.dynamic_interval_beats
+                if props.dynamic_interval_type == 'BARS':
+                    interval_beats = props.dynamic_interval_bars * props.beats_per_bar
+                
+                # Use smart timing start frame if enabled
+                if props.use_smart_timing:
+                    frames_per_beat = (60.0 / props.bpm) * scene.render.fps
+                    dynamic_start = int((props.midi_start_bar - 1) * props.beats_per_bar * frames_per_beat + 
+                                      (props.midi_start_beat - 1) * frames_per_beat) + 1
+                else:
+                    dynamic_start = props.midi_start_frame
+                
+                # Import and use the dynamic event generator
+                from .midi_core import generate_dynamic_events
+                track_frames = generate_dynamic_events(
+                    interval_beats,
+                    props.bpm,
+                    scene.render.fps,
+                    max_frames,
+                    dynamic_start
+                )
+                
+                if track_frames:
+                    all_note_frames.extend(track_frames)
+                    print(f"Dynamic track 'Every {interval_beats} beats': {len(track_frames)} events generated")
+            else:
+                # Build note filter for this track if enabled
+                target_notes = None
+                if track.filter_notes:
+                    target_notes = set()
+                    for note_filter in track.note_filters:
+                        if note_filter.selected:
+                            target_notes.add(note_filter.note_number)
+                
+                # Get note events for this track
+                track_frames = get_note_events_for_track(
+                    props.midi_file,
+                    track.name,
+                    target_notes,
+                    scene.render.fps,
+                    max_frames
+                )
+                
+                if track_frames:
+                    all_note_frames.extend(track_frames)
+                    print(f"Track '{track.name}': {len(track_frames)} note events")
         
         # Sort all frames chronologically
         note_frames = sorted(all_note_frames)
@@ -720,6 +757,48 @@ class MIDIPOSE_OT_invert_note_selection(Operator):
             note.selected = not note.selected
         return {'FINISHED'}
 
+# Smart control update functions
+def update_frame_from_bars(self, context):
+    """Update frame numbers when bar/beat values change"""
+    if not self.use_smart_timing:
+        return
+    
+    scene = context.scene
+    fps = scene.render.fps
+    frames_per_beat = (60.0 / self.bpm) * fps
+    
+    # Update start frame
+    self['midi_start_frame'] = int(
+        (self.midi_start_bar - 1) * self.beats_per_bar * frames_per_beat + 
+        (self.midi_start_beat - 1) * frames_per_beat
+    ) + 1
+
+def update_bars_from_frame(self, context):
+    """Update bar/beat values when frame numbers change"""
+    if not self.use_smart_timing:
+        return
+    
+    scene = context.scene
+    fps = scene.render.fps
+    frames_per_beat = (60.0 / self.bpm) * fps
+    frames_per_bar = frames_per_beat * self.beats_per_bar
+    
+    # Calculate bar and beat from frame
+    frame_offset = self.midi_start_frame - 1
+    self['midi_start_bar'] = int(frame_offset / frames_per_bar) + 1
+    remaining_frames = frame_offset % frames_per_bar
+    self['midi_start_beat'] = int(remaining_frames / frames_per_beat) + 1
+
+def update_dynamic_beats_from_bars(self, context):
+    """Update beat interval when bar interval changes"""
+    if self.dynamic_interval_type == 'BARS':
+        self['dynamic_interval_beats'] = self.dynamic_interval_bars * self.beats_per_bar
+
+def update_dynamic_bars_from_beats(self, context):
+    """Update bar interval when beat interval changes"""
+    if self.dynamic_interval_type == 'BEATS':
+        self['dynamic_interval_bars'] = max(1, int(self.dynamic_interval_beats / self.beats_per_bar))
+
 class TrackNoteFilter(bpy.types.PropertyGroup):
     """Note filter for a specific track"""
     note_number: IntProperty(name="Note Number")
@@ -734,6 +813,13 @@ class TrackItem(bpy.types.PropertyGroup):
     selected: BoolProperty(name="Selected", default=False)
     filter_notes: BoolProperty(name="Filter Notes", default=False)
     note_filters: CollectionProperty(type=TrackNoteFilter)
+    
+    # Dynamic track properties
+    is_dynamic: BoolProperty(
+        name="Is Dynamic",
+        description="Whether this is a dynamically generated track",
+        default=False
+    )
     
     # Summary info
     selected_note_count: IntProperty(name="Selected Notes", default=0)
@@ -787,7 +873,7 @@ class MidiPoseProperties(bpy.types.PropertyGroup):
     
     frames_to_hold: IntProperty(
         name="Hold Frames",
-        description="Frames to hold each pose",
+        description="Number of frames to hold each pose before transitioning to the next. Higher values = slower animation. Set to 0 for instant transitions",
         default=3,
         min=0,
         max=30
@@ -795,7 +881,7 @@ class MidiPoseProperties(bpy.types.PropertyGroup):
     
     interpolation_type: EnumProperty(
         name="Interpolation",
-        description="Interpolation type for transitions",
+        description="How to transition between poses. CONSTANT = instant switch, LINEAR = smooth blend, BEZIER = eased curve, EXPO = dramatic acceleration",
         items=animation_renderer.get_interpolation_types(),
         default='EXPO'
     )
@@ -890,7 +976,8 @@ class MidiPoseProperties(bpy.types.PropertyGroup):
         name="Start Frame",
         description="Frame to start MIDI animation",
         default=1,
-        min=1
+        min=1,
+        update=lambda self, context: update_bars_from_frame(self, context)
     )
     
     # Smart timing controls
@@ -904,14 +991,16 @@ class MidiPoseProperties(bpy.types.PropertyGroup):
         name="Start Bar",
         description="Bar to start MIDI animation",
         default=1,
-        min=1
+        min=1,
+        update=lambda self, context: update_frame_from_bars(self, context)
     )
     
     midi_start_beat: IntProperty(
         name="Start Beat",
         description="Beat within bar to start",
         default=1,
-        min=1
+        min=1,
+        update=lambda self, context: update_frame_from_bars(self, context)
     )
     
     midi_length_bars: IntProperty(
@@ -926,4 +1015,40 @@ class MidiPoseProperties(bpy.types.PropertyGroup):
         description="Additional beats beyond bars",
         default=0,
         min=0
+    )
+    
+    # Dynamic track settings
+    use_dynamic_track: BoolProperty(
+        name="Use Dynamic Track",
+        description="Generate events at regular intervals instead of using MIDI",
+        default=False
+    )
+    
+    dynamic_interval_type: EnumProperty(
+        name="Interval Type",
+        description="Generate events every X beats or bars",
+        items=[
+            ('BEATS', 'Beats', 'Generate event every X beats'),
+            ('BARS', 'Bars', 'Generate event every X bars')
+        ],
+        default='BEATS'
+    )
+    
+    dynamic_interval_beats: FloatProperty(
+        name="Every X Beats",
+        description="Generate event every X beats",
+        default=1.0,
+        min=0.25,
+        max=32.0,
+        step=25,  # 0.25 increments
+        update=lambda self, context: update_dynamic_bars_from_beats(self, context)
+    )
+    
+    dynamic_interval_bars: IntProperty(
+        name="Every X Bars",
+        description="Generate event every X bars",
+        default=1,
+        min=1,
+        max=32,
+        update=lambda self, context: update_dynamic_beats_from_bars(self, context)
     )

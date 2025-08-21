@@ -224,15 +224,27 @@ class MIDIPOSE_PT_run_timing(Panel, MidiPosePanel):
         layout.prop(props, "use_smart_timing", text="Use Musical Timing")
         
         if props.use_smart_timing:
-            # Smart controls (bars/beats)
-            col = layout.column()
+            # Smart controls with side-by-side display
+            box = layout.box()
+            box.label(text="Smart Timing Controls", icon='TIME')
             
-            row = col.row(align=True)
-            row.label(text="Start:")
-            row.prop(props, "midi_start_bar", text="Bar")
-            row.prop(props, "midi_start_beat", text="Beat")
+            # Start position table
+            grid = box.grid_flow(columns=2, align=True)
             
-            row = col.row(align=True)
+            # Labels
+            grid.label(text="Start Frame")
+            grid.label(text="Start Bar/Beat")
+            
+            # Values
+            grid.prop(props, "midi_start_frame", text="")
+            row = grid.row(align=True)
+            row.prop(props, "midi_start_bar", text="")
+            row.prop(props, "midi_start_beat", text="")
+            
+            box.separator()
+            
+            # Length controls
+            row = box.row(align=True)
             row.label(text="Length:")
             row.prop(props, "midi_length_bars", text="Bars")
             row.prop(props, "midi_length_beats", text="+ Beats")
