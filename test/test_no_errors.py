@@ -81,9 +81,13 @@ def main():
     panel_ids = [
         # MPC-Run tab panels
         'MIDIPOSE_PT_run_main',
-        'MIDIPOSE_PT_run_action',
+        'MIDIPOSE_PT_run_output',
+        'MIDIPOSE_PT_run_timing',
+        'MIDIPOSE_PT_run_input',
+        'MIDIPOSE_PT_run_config',
         # MPC-Pose tab panels
         'MIDIPOSE_PT_pose_selection',
+        'MIDIPOSE_PT_pose_cycle',
         'MIDIPOSE_PT_pose_order',
         # MPC-MIDI tab panels
         'MIDIPOSE_PT_midi_file',

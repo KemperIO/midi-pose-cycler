@@ -73,9 +73,9 @@ classes = [
     
     # MPC-Run Panels
     ui_panels_run.MIDIPOSE_PT_run_main,
-    ui_panels_run.MIDIPOSE_PT_run_action,
+    ui_panels_run.MIDIPOSE_PT_run_output,
     ui_panels_run.MIDIPOSE_PT_run_timing,
-    ui_panels_run.MIDIPOSE_PT_run_preview,
+    ui_panels_run.MIDIPOSE_PT_run_input,
     ui_panels_run.MIDIPOSE_PT_run_config,
     
     # MPC-Pose Panels

@@ -407,7 +407,7 @@ class MIDIPOSE_OT_render_animation(Operator):
         if success:
             # Print detailed table of pose assignments
             print("\n" + "="*80)
-            print("ANIMATION GENERATION COMPLETE")
+            print(f"ANIMATION GENERATION COMPLETE - Action: {props.action_name}")
             print("="*80)
             
             # Calculate bar/beat for each frame
@@ -534,14 +534,25 @@ class MIDIPOSE_OT_refresh_poses(Operator):
     
     def execute(self, context):
         props = context.scene.midi_pose_props
+        
+        # Save current selection state and order
+        previous_selection = {}
+        previous_order = {}
+        for pose in props.pose_items:
+            previous_selection[pose.name] = pose.selected
+            previous_order[pose.name] = pose.order_index
+        
+        # Clear and repopulate
         props.pose_items.clear()
         
         poses = animation_renderer.get_available_poses()
         for i, pose_name in enumerate(poses):
             item = props.pose_items.add()
             item.name = pose_name
-            item.selected = False
-            item.order_index = i
+            # Restore previous selection state if it existed
+            item.selected = previous_selection.get(pose_name, False)
+            # Restore previous order or use new index
+            item.order_index = previous_order.get(pose_name, i)
         
         self.report({'INFO'}, f"Found {len(poses)} poses")
         return {'FINISHED'}

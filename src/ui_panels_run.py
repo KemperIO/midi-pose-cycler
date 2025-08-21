@@ -18,10 +18,10 @@ class MidiPosePanel:
         return context.mode in ('OBJECT', 'POSE')
 
 
-# MAIN RUN PANEL - Generate button and core settings
+# MAIN RUN PANEL - Generate button only
 class MIDIPOSE_PT_run_main(Panel, MidiPosePanel):
     """Main run panel with generate button"""
-    bl_label = "Run Animation"
+    bl_label = "Run"
     bl_idname = "MIDIPOSE_PT_run_main"
     bl_category = "MPC-Run"
     bl_order = 0
@@ -86,76 +86,15 @@ class MIDIPOSE_PT_run_main(Panel, MidiPosePanel):
             if selected_tracks and not selected_poses:
                 col.label(text="❌ No poses selected", icon='ERROR')
         else:
-            # Show summary table
             col = layout.column()
-            col.label(text="Ready to generate:", icon='CHECKMARK')
-            
-            # Track summary table
-            box = col.box()
-            box.label(text="Selected Tracks:", icon='NLA')
-            
-            # Table header
-            row = box.row()
-            row.scale_y = 0.8
-            sub = row.row()
-            sub.scale_x = 2.0
-            sub.label(text="Track")
-            sub = row.row()
-            sub.label(text="Events")
-            sub = row.row()
-            sub.label(text="Tones")
-            
-            box.separator(factor=0.5)
-            
-            # Table rows
-            for track in selected_tracks:
-                row = box.row()
-                row.scale_y = 0.9
-                
-                # Track name
-                sub = row.row()
-                sub.scale_x = 2.0
-                sub.label(text=track.name, icon='NLA_PUSHDOWN')
-                
-                # Event count
-                sub = row.row()
-                sub.label(text=f"{track.note_count}")
-                
-                # Tone filter info
-                sub = row.row()
-                if track.is_dynamic:
-                    sub.label(text="N/A", icon='TIME')
-                elif track.filter_notes and track.note_filters:
-                    selected_tones = [n for n in track.note_filters if n.selected]
-                    if selected_tones:
-                        # Show first few selected tones
-                        tone_names = [f"{t.note_name}" for t in selected_tones[:3]]
-                        text = ", ".join(tone_names)
-                        if len(selected_tones) > 3:
-                            text += f" (+{len(selected_tones)-3})"
-                        sub.label(text=text, icon='FILTER')
-                    else:
-                        sub.label(text="None", icon='X')
-                else:
-                    sub.label(text="All", icon='CHECKBOX_HLT')
-            
-            # Pose summary
-            box.separator()
-            row = box.row()
-            row.label(text="Poses:", icon='ARMATURE_DATA')
-            row.label(text=f"{len(selected_poses)} selected")
-            
-            # Action name
-            row = box.row()
-            row.label(text="Output:", icon='ACTION')
-            row.label(text=props.action_name)
+            col.label(text="Ready to generate!", icon='CHECKMARK')
 
 
-# ACTION SETTINGS PANEL
-class MIDIPOSE_PT_run_action(Panel, MidiPosePanel):
-    """Action and animation settings"""
-    bl_label = "Action Settings"
-    bl_idname = "MIDIPOSE_PT_run_action"
+# OUTPUT PANEL
+class MIDIPOSE_PT_run_output(Panel, MidiPosePanel):
+    """Output action settings"""
+    bl_label = "Output"
+    bl_idname = "MIDIPOSE_PT_run_output"
     bl_category = "MPC-Run"
     bl_parent_id = "MIDIPOSE_PT_run_main"
     bl_options = {'DEFAULT_CLOSED'}
@@ -166,19 +105,20 @@ class MIDIPOSE_PT_run_action(Panel, MidiPosePanel):
         
         col = layout.column()
         
-        # Action selection dropdown - just use text field for simplicity
+        # Action selection dropdown
         row = col.row()
-        row.label(text="Action:")
-        row.prop(props, "action_name", text="")
+        row.label(text="Output Action:")
+        row.prop_search(props, "action_name", bpy.data, "actions", text="")
         
-        # Helper text about action selection
+        # Helper text
         row = col.row()
         row.scale_y = 0.7
-        row.label(text="Enter action name or create new", icon='INFO')
-        
-        # Create new action button
-        row = col.row()
-        row.operator("action.new", text="New Action", icon='ADD')
+        if props.action_name and props.action_name not in bpy.data.actions:
+            row.label(text="Will create new action", icon='ADD')
+        elif props.action_name:
+            row.label(text="Will update existing action", icon='FILE_REFRESH')
+        else:
+            row.label(text="Enter name for new action", icon='INFO')
         
         # Warning if action exists and has keyframes
         if props.action_name:  # Only check if action name is set
@@ -194,28 +134,6 @@ class MIDIPOSE_PT_run_action(Panel, MidiPosePanel):
                     col_warn.alert = True
                     col_warn.label(text="⚠️ Action has keyframes!", icon='ERROR')
                     box.prop(props, "skip_keyframe_warning", text="Don't warn about overwriting")
-        
-        col.separator()
-        
-        # Animation mode
-        row = col.row()
-        row.label(text="Mode:")
-        row.prop(props, "animation_mode", text="")
-        
-        # Cycle mode
-        row = col.row()
-        row.label(text="Cycle:")
-        row.prop(props, "pose_cycle_mode", text="")
-        
-        # Frame settings
-        col.separator()
-        row = col.row()
-        row.label(text="Hold Frames:")
-        row.prop(props, "frames_to_hold", text="")
-        
-        row = col.row()
-        row.label(text="Interpolation:")
-        row.prop(props, "interpolation_type", text="")
 
 
 # TIMING PANEL
@@ -288,46 +206,93 @@ class MIDIPOSE_PT_run_timing(Panel, MidiPosePanel):
         col.label(text=f"Project FPS: {scene.render.fps}", icon='TIME')
 
 
-# PREVIEW PANEL - Shows current selection summary
-class MIDIPOSE_PT_run_preview(Panel, MidiPosePanel):
-    """Preview of current setup"""
-    bl_label = "Preview"
-    bl_idname = "MIDIPOSE_PT_run_preview"
+# INPUT SUMMARY PANEL - Shows current selection summary
+class MIDIPOSE_PT_run_input(Panel, MidiPosePanel):
+    """Input summary of current setup"""
+    bl_label = "Input Summary"
+    bl_idname = "MIDIPOSE_PT_run_input"
     bl_category = "MPC-Run"
     bl_parent_id = "MIDIPOSE_PT_run_main"
     
     def draw(self, context):
         layout = self.layout
         props = context.scene.midi_pose_props
+        scene = context.scene
         
+        # Settings table
+        box = layout.box()
+        box.label(text="Settings:", icon='SETTINGS')
+        
+        # Create a two-column grid
+        grid = box.grid_flow(columns=2, align=True)
+        
+        # Mode
+        grid.label(text="Mode:")
+        grid.label(text=props.animation_mode)
+        
+        # Cycle
+        grid.label(text="Cycle:")
+        grid.label(text=props.pose_cycle_mode.replace('_', ' ').title())
+        
+        # Hold Frames
+        grid.label(text="Hold:")
+        grid.label(text=f"{props.frames_to_hold} frames")
+        
+        # Interpolation
+        grid.label(text="Interpolation:")
+        grid.label(text=props.interpolation_type.replace('_', ' ').title())
+        
+        layout.separator()
+        
+        # MIDI info table
         if props.midi_file:
-            # MIDI info
             box = layout.box()
-            box.label(text="MIDI:", icon='FILE_SOUND')
-            box.label(text=os.path.basename(props.midi_file))
+            box.label(text="MIDI Data:", icon='FILE_SOUND')
             
-            if props.selected_track:
-                box.label(text=f"Track: {props.selected_track}")
+            # File name
+            row = box.row()
+            row.label(text="File:")
+            row.label(text=os.path.basename(props.midi_file))
+            
+            # Selected tracks
+            selected_tracks = [t for t in props.track_items if t.selected]
+            if selected_tracks:
+                box.separator(factor=0.5)
                 
-                # Note filtering info
-                if props.filter_notes:
-                    selected_notes = sum(1 for n in props.note_items if n.selected)
-                    box.label(text=f"Notes: {selected_notes} selected")
-                else:
-                    box.label(text="Notes: All")
-        
-        # Pose info
-        selected_poses = [p for p in props.pose_items if p.selected]
-        if selected_poses:
+                # Table header
+                row = box.row()
+                row.label(text="Track")
+                row.label(text="Notes")
+                row.label(text="Tones")
+                
+                box.separator(factor=0.2)
+                
+                # Track rows
+                for track in selected_tracks:
+                    row = box.row()
+                    
+                    # Track name (truncate if needed)
+                    name = track.name
+                    if len(name) > 15:
+                        name = name[:12] + "..."
+                    row.label(text=name)
+                    
+                    # Note count
+                    row.label(text=str(track.note_count))
+                    
+                    # Tone info
+                    if track.is_dynamic:
+                        row.label(text="Dynamic")
+                    elif track.filter_notes and track.note_filters:
+                        selected_tones = [n for n in track.note_filters if n.selected]
+                        row.label(text=f"{len(selected_tones)}/{len(track.note_filters)}")
+                    else:
+                        row.label(text="All")
+            else:
+                box.label(text="No tracks selected", icon='ERROR')
+        else:
             box = layout.box()
-            box.label(text="Poses:", icon='ARMATURE_DATA')
-            
-            # Show first few poses
-            for i, pose in enumerate(selected_poses[:3]):
-                box.label(text=f"  {i+1}. {pose.name}")
-            
-            if len(selected_poses) > 3:
-                box.label(text=f"  ... and {len(selected_poses) - 3} more")
+            box.label(text="No MIDI file loaded", icon='ERROR')
 
 
 # CONFIGURATION PANEL
@@ -366,9 +331,9 @@ class MIDIPOSE_PT_run_config(Panel, MidiPosePanel):
 # Registration
 classes = [
     MIDIPOSE_PT_run_main,
-    MIDIPOSE_PT_run_action,
+    MIDIPOSE_PT_run_output,
     MIDIPOSE_PT_run_timing,
-    MIDIPOSE_PT_run_preview,
+    MIDIPOSE_PT_run_input,
     MIDIPOSE_PT_run_config,
 ]
 

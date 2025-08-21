@@ -183,6 +183,24 @@ class MIDIPOSE_PT_pose_cycle(Panel, MidiPosePanel):
         elif props.pose_cycle_mode == 'RANDOM':
             box.label(text="Random pose selection", icon='SHADERFX')
             box.label(text="Unpredictable sequence")
+        elif props.pose_cycle_mode == 'PITCH_FOLLOW':
+            box.label(text="Pitch maps to pose height", icon='IPO_LINEAR')
+            box.label(text="Higher pitch → higher pose index")
+        
+        # Timing controls (shared with Run tab)
+        layout.separator()
+        box = layout.box()
+        box.label(text="Timing:", icon='TIME')
+        
+        # Hold Frames
+        row = box.row()
+        row.label(text="Hold Frames:")
+        row.prop(props, "frames_to_hold", text="")
+        
+        # Interpolation
+        row = box.row()
+        row.label(text="Interpolation:")
+        row.prop(props, "interpolation_type", text="")
         
         # Animation mode info
         layout.separator()

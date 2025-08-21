@@ -278,9 +278,53 @@ duration = frame_limit if use_frame_limit else total_frames
 | Create Workspace  | `midipose.create_workspace` | Setup UI workspace   |
 
 ## Configuration Management
+
+### ConfigData Type
+Saved configurations use the `ConfigData` TypedDict structure defined in `config_manager.py`:
+
+```python
+class ConfigData(TypedDict):
+    version: str                    # Config format version
+    
+    # Core settings
+    midi_file: str                  # Path to MIDI file
+    action_name: str                # Output action name
+    animation_mode: str             # POSE or ACTION
+    pose_cycle_mode: str            # LOOP, BOOMERANG, RANDOM, PITCH_FOLLOW
+    
+    # Timing settings
+    frames_to_hold: int
+    interpolation_type: str
+    bpm: float
+    beats_per_bar: int
+    use_smart_timing: bool
+    midi_start_frame: int
+    midi_start_bar: int
+    midi_start_beat: int
+    midi_length_bars: int
+    midi_length_beats: int
+    use_frame_limit: bool
+    frame_limit: int
+    
+    # Multi-track support
+    selected_tracks: List[Dict]     # Track selections with note filters
+    
+    # Pose selection
+    selected_poses: List[str]       # Ordered pose names
+    pose_order: Dict[str, int]      # Pose name -> order index
+    
+    # Dynamic track
+    dynamic_interval_beats: float
+    dynamic_interval_type: str
+```
+
+### Features
 - **Save/Load**: Store complete setup as scene data
 - **Active Config**: Track current configuration
 - **Delete**: Remove saved configs
+- **Auto-reload**: MIDI file automatically reloaded when config is loaded
+- **Multi-track support**: Saves all selected tracks with their note filters
+- **Pose order preservation**: Maintains pose selection and ordering
 
 ## Animation Modes Detail
 
