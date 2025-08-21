@@ -34,6 +34,7 @@ class MIDIPOSE_OT_load_midi(Operator, ImportHelper):
         analysis = midi_core.analyze_midi_file(self.filepath)
         if analysis:
             # Populate track list with unique names only (tracks are already merged)
+            # Also populate note filters for each track
             seen_names = set()
             for track in analysis.tracks:
                 if track.name not in seen_names:
@@ -41,6 +42,17 @@ class MIDIPOSE_OT_load_midi(Operator, ImportHelper):
                     item.name = track.name
                     item.note_count = track.note_count
                     item.track_index = track.index
+                    item.selected = False  # Start unselected
+                    
+                    # Add note filters for this track
+                    item.note_filters.clear()
+                    for note_num in sorted(track.notes.keys()):
+                        note_filter = item.note_filters.add()
+                        note_filter.note_number = note_num
+                        note_filter.note_name = midi_core.midi_note_to_name(note_num)
+                        note_filter.selected = True  # Default all notes selected
+                    
+                    item.selected_note_count = len(track.notes)
                     seen_names.add(track.name)
             
             # Store the analysis data for later use (Blender ID properties format)
@@ -210,10 +222,12 @@ class MIDIPOSE_OT_render_animation(Operator):
             self.report({'ERROR'}, "No MIDI file loaded")
             return {'CANCELLED'}
         
-        if not props.selected_track:
-            print("ERROR: No track selected")
+        # Get selected tracks (multi-track support)
+        selected_tracks = [t for t in props.track_items if t.selected]
+        if not selected_tracks:
+            print("ERROR: No tracks selected")
             sys.stdout.flush()
-            self.report({'ERROR'}, "No track selected")
+            self.report({'ERROR'}, "No tracks selected")
             return {'CANCELLED'}
         
         if not context.active_object:
@@ -233,36 +247,42 @@ class MIDIPOSE_OT_render_animation(Operator):
             self.report({'ERROR'}, "No poses selected")
             return {'CANCELLED'}
         
-        # Gather selected notes (if filtering)
-        target_notes = None
-        if props.filter_notes:
-            target_notes = set()
-            for note_item in props.note_items:
-                if note_item.selected:
-                    target_notes.add(note_item.note_number)
+        # Gather note events from all selected tracks
+        all_note_frames = []
         
         # Determine frame limit
         max_frames = props.frame_limit if props.use_frame_limit else props.total_frames
         
-        # Get note events
-        note_frames = get_note_events_for_track(
-            props.midi_file,
-            props.selected_track,
-            target_notes,
-            scene.render.fps,
-            max_frames
-        )
+        for track in selected_tracks:
+            # Build note filter for this track if enabled
+            target_notes = None
+            if track.filter_notes:
+                target_notes = set()
+                for note_filter in track.note_filters:
+                    if note_filter.selected:
+                        target_notes.add(note_filter.note_number)
+            
+            # Get note events for this track
+            track_frames = get_note_events_for_track(
+                props.midi_file,
+                track.name,
+                target_notes,
+                scene.render.fps,
+                max_frames
+            )
+            
+            if track_frames:
+                all_note_frames.extend(track_frames)
+                print(f"Track '{track.name}': {len(track_frames)} note events")
+        
+        # Sort all frames chronologically
+        note_frames = sorted(all_note_frames)
         
         if not note_frames:
-            warning_msg = f"No matching notes found in track '{props.selected_track}'"
-            if props.filter_notes and target_notes:
-                warning_msg += f" with note filter: {target_notes}"
+            warning_msg = f"No matching notes found in selected tracks"
             print(f"WARNING: {warning_msg}")
             print(f"  - MIDI file: {props.midi_file}")
-            print(f"  - Track: {props.selected_track}")
-            print(f"  - Filter enabled: {props.filter_notes}")
-            if target_notes:
-                print(f"  - Target notes: {sorted(target_notes)}")
+            print(f"  - Selected tracks: {[t.name for t in selected_tracks]}")
             sys.stdout.flush()
             self.report({'WARNING'}, warning_msg)
             return {'CANCELLED'}
@@ -601,6 +621,61 @@ class MIDIPOSE_OT_select_all_notes(Operator):
         return {'FINISHED'}
 
 
+# Per-track note selection operators
+class MIDIPOSE_OT_select_all_track_notes(Operator):
+    """Select all notes for a track"""
+    bl_idname = "midipose.select_all_track_notes"
+    bl_label = "Select All Track Notes"
+    
+    track_name: StringProperty()
+    
+    def execute(self, context):
+        props = context.scene.midi_pose_props
+        for track in props.track_items:
+            if track.name == self.track_name:
+                for note in track.note_filters:
+                    note.selected = True
+                track.selected_note_count = len(track.note_filters)
+                break
+        return {'FINISHED'}
+
+
+class MIDIPOSE_OT_deselect_all_track_notes(Operator):
+    """Deselect all notes for a track"""
+    bl_idname = "midipose.deselect_all_track_notes"
+    bl_label = "Deselect All Track Notes"
+    
+    track_name: StringProperty()
+    
+    def execute(self, context):
+        props = context.scene.midi_pose_props
+        for track in props.track_items:
+            if track.name == self.track_name:
+                for note in track.note_filters:
+                    note.selected = False
+                track.selected_note_count = 0
+                break
+        return {'FINISHED'}
+
+
+class MIDIPOSE_OT_invert_track_notes(Operator):
+    """Invert note selection for a track"""
+    bl_idname = "midipose.invert_track_notes"
+    bl_label = "Invert Track Notes"
+    
+    track_name: StringProperty()
+    
+    def execute(self, context):
+        props = context.scene.midi_pose_props
+        for track in props.track_items:
+            if track.name == self.track_name:
+                for note in track.note_filters:
+                    note.selected = not note.selected
+                track.selected_note_count = sum(1 for n in track.note_filters if n.selected)
+                break
+        return {'FINISHED'}
+
+
 class MIDIPOSE_OT_deselect_all_notes(Operator):
     """Deselect all notes"""
     bl_idname = "midipose.deselect_all_notes"
@@ -624,11 +699,23 @@ class MIDIPOSE_OT_invert_note_selection(Operator):
             note.selected = not note.selected
         return {'FINISHED'}
 
+class TrackNoteFilter(bpy.types.PropertyGroup):
+    """Note filter for a specific track"""
+    note_number: IntProperty(name="Note Number")
+    note_name: StringProperty(name="Note Name")
+    selected: BoolProperty(name="Selected", default=True)
+
 class TrackItem(bpy.types.PropertyGroup):
     """Property group for MIDI tracks"""
     name: StringProperty(name="Track Name")
     note_count: IntProperty(name="Note Count")
     track_index: IntProperty(name="Track Index")
+    selected: BoolProperty(name="Selected", default=False)
+    filter_notes: BoolProperty(name="Filter Notes", default=False)
+    note_filters: CollectionProperty(type=TrackNoteFilter)
+    
+    # Summary info
+    selected_note_count: IntProperty(name="Selected Notes", default=0)
 
 class NoteItem(bpy.types.PropertyGroup):
     """Property group for MIDI notes"""

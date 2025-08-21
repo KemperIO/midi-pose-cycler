@@ -49,33 +49,75 @@ class MIDIPOSE_PT_run_main(Panel, MidiPosePanel):
                     icon='PLAY')
         
         # Status info
+        selected_tracks = [t for t in props.track_items if t.selected]
+        selected_poses = [p for p in props.pose_items if p.selected]
+        
+        # Update can_generate for multi-track
+        can_generate = (bool(props.midi_file) and 
+                       len(selected_tracks) > 0 and 
+                       len(selected_poses) > 0)
+        
         if not can_generate:
             col = layout.column()
             col.alert = True
             if not props.midi_file:
                 col.label(text="❌ No MIDI file loaded", icon='ERROR')
-            if props.midi_file and not props.selected_track:
-                col.label(text="❌ No track selected", icon='ERROR')
-            if props.selected_track and not any(p.selected for p in props.pose_items):
+            if props.midi_file and not selected_tracks:
+                col.label(text="❌ No tracks selected", icon='ERROR')
+            if selected_tracks and not selected_poses:
                 col.label(text="❌ No poses selected", icon='ERROR')
         else:
-            # Show preview of what will be generated
+            # Show summary table
             col = layout.column()
             col.label(text="Ready to generate:", icon='CHECKMARK')
             
+            # Track summary table
             box = col.box()
-            box.scale_y = 0.9
+            box.label(text="Selected Tracks:", icon='NLA')
             
-            # Track info
+            # Table header
             row = box.row()
-            row.label(text="Track:", icon='NLA')
-            row.label(text=props.selected_track)
+            row.scale_y = 0.8
+            sub = row.row()
+            sub.scale_x = 2.0
+            sub.label(text="Track")
+            sub = row.row()
+            sub.label(text="Notes")
+            sub = row.row()
+            sub.label(text="Filter")
             
-            # Pose count
-            selected_count = sum(1 for p in props.pose_items if p.selected)
+            box.separator(factor=0.5)
+            
+            # Table rows
+            for track in selected_tracks:
+                row = box.row()
+                row.scale_y = 0.9
+                
+                # Track name
+                sub = row.row()
+                sub.scale_x = 2.0
+                sub.label(text=track.name, icon='NLA_PUSHDOWN')
+                
+                # Note count
+                sub = row.row()
+                if track.filter_notes:
+                    selected_notes = sum(1 for n in track.note_filters if n.selected)
+                    sub.label(text=f"{selected_notes}/{track.note_count}")
+                else:
+                    sub.label(text=f"{track.note_count}")
+                
+                # Filter status
+                sub = row.row()
+                if track.filter_notes:
+                    sub.label(text="Active", icon='FILTER')
+                else:
+                    sub.label(text="All", icon='CHECKBOX_HLT')
+            
+            # Pose summary
+            box.separator()
             row = box.row()
             row.label(text="Poses:", icon='ARMATURE_DATA')
-            row.label(text=f"{selected_count} selected")
+            row.label(text=f"{len(selected_poses)} selected")
             
             # Action name
             row = box.row()
