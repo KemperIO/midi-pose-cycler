@@ -34,6 +34,7 @@ def create_test_script(test_module=None):
         test_imports = """
 import test_workspace
 import test_addon_load
+import test_midi_load
 """
         test_run = """
 print("\\nRunning all tests...\\n")
@@ -56,6 +57,15 @@ try:
 except Exception as e:
     print(f"Failed to run workspace test: {e}")
     results.append(('Workspace', False))
+
+# Test MIDI loading
+print("\\nTesting MIDI file loading...")
+try:
+    import test_midi_load
+    results.append(('MIDI Load', test_midi_load.main()))
+except Exception as e:
+    print(f"Failed to run MIDI load test: {e}")
+    results.append(('MIDI Load', False))
 
 # Summary
 print("\\n" + "=" * 60)
