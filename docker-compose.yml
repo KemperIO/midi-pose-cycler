@@ -16,11 +16,13 @@ services:
     
     # Volume mappings - bidirectional sync
     volumes:
-      # Map entire project directory to /workspace
+      # Map entire project directory to /workspace (changes sync both ways)
       - .:/workspace:rw
       # Persist cache and config
       - blender-cache:/home/developer/.cache
       - blender-config:/home/developer/.config
+      # Persist Claude CLI config
+      - claude-config:/home/developer/.claude
       
     # Environment variables
     environment:
@@ -44,4 +46,6 @@ volumes:
   blender-cache:
     driver: local
   blender-config:
+    driver: local
+  claude-config:
     driver: local

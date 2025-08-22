@@ -1,5 +1,6 @@
-# Dockerfile for MIDI Pose Cycler with Blender 4.5
-# Based on Claude Code's recommended patterns
+# Dockerfile for MIDI Pose Cycler with Blender 4.5 and Claude CLI
+# Based on Claude Code's recommended patterns from:
+# https://github.com/anthropics/claude-code/blob/main/.devcontainer/Dockerfile
 
 FROM ubuntu:22.04
 
@@ -7,7 +8,7 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
 
-# Install system dependencies
+# Install system dependencies including Node.js
 RUN apt-get update && apt-get install -y \
     wget \
     curl \
@@ -26,10 +27,19 @@ RUN apt-get update && apt-get install -y \
     libgomp1 \
     libsm6 \
     libxext6 \
+    libxkbcommon0 \
+    libxkbcommon-x11-0 \
     zsh \
     sudo \
     vim \
     nano \
+    ca-certificates \
+    gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js 20 (required for Claude CLI)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Blender 4.5
@@ -49,8 +59,17 @@ RUN groupadd --gid $USER_GID $USERNAME \
     && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
     && chmod 0440 /etc/sudoers.d/$USERNAME
 
-# Set up workspace directory
-WORKDIR /workspace
+# Set up npm global directory for the user
+ENV NPM_CONFIG_PREFIX=/usr/local/share/npm-global
+ENV PATH=$PATH:/usr/local/share/npm-global/bin
+
+# Create npm global directory with proper permissions
+RUN mkdir -p /usr/local/share/npm-global \
+    && chown -R $USERNAME:$USERNAME /usr/local/share/npm-global
+
+# Install Claude CLI globally
+ARG CLAUDE_CODE_VERSION=latest
+RUN npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
 
 # Install Python dependencies globally
 RUN pip3 install --upgrade pip \
@@ -60,6 +79,10 @@ RUN pip3 install --upgrade pip \
     black \
     mypy \
     ipython
+
+# Set up workspace directory with proper permissions
+WORKDIR /workspace
+RUN chown -R $USERNAME:$USERNAME /workspace
 
 # Switch to non-root user
 USER $USERNAME
@@ -71,7 +94,8 @@ ENV SHELL=/bin/bash
 # Create directories for development
 RUN mkdir -p $HOME/.cache \
     && mkdir -p $HOME/.local/share \
-    && mkdir -p $HOME/.config
+    && mkdir -p $HOME/.config \
+    && mkdir -p $HOME/.claude
 
 # Set Python path for Blender's Python
 ENV PYTHONPATH=/opt/blender/4.5/python/lib/python3.11/site-packages:$PYTHONPATH
@@ -80,8 +104,11 @@ ENV PYTHONPATH=/opt/blender/4.5/python/lib/python3.11/site-packages:$PYTHONPATH
 ENV BLENDER_USER_SCRIPTS=/workspace
 ENV BLENDER_USER_CONFIG=/home/$USERNAME/.config/blender/4.5
 
+# Set Claude Code environment
+ENV CLAUDE_CODE_IN_DOCKER=true
+
 # Create volume mount points
-VOLUME ["/workspace", "/home/$USERNAME/.cache"]
+VOLUME ["/workspace", "/home/$USERNAME/.cache", "/home/$USERNAME/.claude"]
 
 # Default shell
 CMD ["/bin/bash"]

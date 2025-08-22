@@ -4,9 +4,10 @@ A Blender 4.5+ extension for synchronizing pose/action animations to MIDI events
 
 ## 🐳 Docker Development Environment
 
-### Docker Desktop on Windows to support wsl2
-https://docs.docker.com/desktop/features/wsl/
+### Prerequisites
 
+#### Docker Desktop on Windows (for WSL2)
+https://docs.docker.com/desktop/features/wsl/
 
 ### Quick Start
 
@@ -15,20 +16,30 @@ https://docs.docker.com/desktop/features/wsl/
 git clone <repository-url>
 cd midi-pose-cycler
 
-# 2. Launch interactive Docker shell
+# 2. Build and launch interactive Docker shell
 ./scripts/docker-shell.sh
 
-# 3. Inside container, run headless animation generation
+# 3. Inside container, you now have access to:
+#    - claude (Claude CLI for development)
+#    - blender (Blender 4.5 for testing)
+#    - python3 (for running tests)
+
+# Example: Use Claude CLI in the container
+claude
+
+# Example: Run headless animation generation
 blender --background --python mpc_headless.py -- test/example_input.md
 ```
 
 ### Docker Setup Details
 
 The Docker environment includes:
+- **Claude CLI** - Full Claude Code installation for isolated development
 - **Blender 4.5** - Full installation with Python API
+- **Node.js 20** - Required for Claude CLI
 - **Python 3.11** - Matching Blender's Python version
 - **Development tools** - git, vim, testing frameworks
-- **Volume mapping** - Bidirectional file sync
+- **Volume mapping** - Bidirectional file sync with host
 
 ### How Docker Volume Mapping Works
 
@@ -39,14 +50,17 @@ volumes:
 
 **File Synchronization:**
 - ✅ **Bidirectional sync** - Changes in either location are reflected immediately
-- ✅ **VSCode (WSL)** ↔️ **Docker** ↔️ **Claude Code** - All see the same files
+- ✅ **VSCode (WSL)** ↔️ **Docker Container** ↔️ **Claude CLI (in container)** - All see the same files
 - ✅ Real-time updates - No manual sync needed
+- ✅ **Claude CLI in Docker** - Isolated environment with full access to project files
 
 **Example workflow:**
-1. Edit files in VSCode on Windows/WSL
-2. Changes immediately visible in Docker container
-3. Run Blender headless in Docker
-4. Output files appear in your local directory
+1. Launch Docker container with `./scripts/docker-shell.sh`
+2. Run `claude` inside container to start Claude CLI
+3. Claude makes changes to files in `/workspace` 
+4. Changes immediately visible in your WSL/Windows filesystem
+5. VSCode (running on host) sees updates in real-time
+6. Test changes with Blender (also in container)
 
 ### Docker Commands
 
@@ -73,8 +87,13 @@ docker system prune  # Remove unused containers/images
 Once in the Docker shell:
 
 ```bash
-# Check Blender version
+# Start Claude CLI for development
+claude
+
+# Check available tools
 blender --version
+node --version
+claude --version
 
 # Run headless tests
 python3 test/test_headless_all.py
@@ -85,6 +104,23 @@ blender --background --python mpc_headless.py -- input.md
 # Validate input without generating
 blender --background --python mpc_headless.py -- input.md --validate-only
 ```
+
+### Using Claude CLI in Docker
+
+The container includes a full Claude CLI installation:
+
+```bash
+# Inside the container
+claude  # Start Claude CLI
+
+# Claude can now:
+# - Edit files in /workspace (synced to your host)
+# - Run Blender tests directly
+# - Execute Python scripts
+# - All changes are immediately visible on host
+```
+
+**Note**: Your Claude API key is stored in the persistent volume `claude-config`, so you only need to authenticate once.
 
 ### File Permissions
 
