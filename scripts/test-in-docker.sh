@@ -3,11 +3,20 @@
 
 echo "🧪 Running headless tests in Docker..."
 
+# Check if docker is accessible
+if ! docker info > /dev/null 2>&1; then
+    echo "❌ Docker daemon not accessible. Try:"
+    echo "   1. sudo service docker start"
+    echo "   2. sudo usermod -aG docker $USER"
+    echo "   3. Log out and back in"
+    exit 1
+fi
+
 # Build if needed
-docker-compose build
+docker compose build
 
 # Run tests
-docker-compose run --rm midi-pose-cycler bash -c "
+docker compose run --rm midi-pose-cycler bash -c "
     echo '=== Testing Blender Installation ==='
     blender --version
     

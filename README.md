@@ -4,6 +4,10 @@ A Blender 4.5+ extension for synchronizing pose/action animations to MIDI events
 
 ## 🐳 Docker Development Environment
 
+### Docker Desktop on Windows to support wsl2
+https://docs.docker.com/desktop/features/wsl/
+
+
 ### Quick Start
 
 ```bash
