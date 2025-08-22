@@ -489,7 +489,144 @@ When PITCH_FOLLOW is selected:
 4. Applies bounce_out for consecutive same poses
 5. Generates animation with pitch-driven pose selection
 
+## Headless Mode
+
+### Overview
+Generate animations from markdown table input without GUI. Object-oriented, typed, modular design.
+
+### Usage
+```bash
+blender --background --python mpc_headless.py -- input.md
+blender --background --python mpc_headless.py -- --input "markdown string"
+blender --background --python mpc_headless.py -- input.md --validate-only
+```
+
+### Input Format
+Markdown tables with three sections:
+
+#### Form Table
+| Field | Description | Default |
+|-------|-------------|---------|
+| actionNameToCreate | Output action name | Required |
+| bpm | Beats per minute | 120 |
+| beatsPerBar | Time signature | 4 |
+| blendFileToOutputAction | Output blend file | Required |
+| poseBlendFile | Source poses file | Required |
+| poseCatalog | Root catalog name | Required |
+| midiFile | MIDI input file | Required |
+
+#### Dance Table  
+| Field | Description | Default |
+|-------|-------------|---------|
+| poseCatalog | Pose folder/catalog | Required |
+| track | MIDI track name | Required |
+| cycleMode | loop/random/pitch_follow/boomerang | loop |
+| interpolation | Blender interpolation type | cubic |
+| preHold | Frames before transition | 8 |
+| postHold | Frames to hold pose | 2 |
+
+#### Video Table (Optional)
+| Field | Description | Default |
+|-------|-------------|---------|
+| shouldCreateVideo? | yes/no | no |
+| audioFile | Audio sync file | Required if video |
+| renderDir | Output directory | Required if video |
+| charFile | Character rig file | Required if video |
+
+### Example Input
+```markdown
+## Form Table
+| Form label | value |
+|------------|-------|
+| actionNameToCreate | dance_01 |
+| bpm | 120 |
+| midiFile | music.mid |
+| poseBlendFile | poses.blend |
+
+## Dance Table
+| poseCatalog | track | cycle mode | interpolation | preHold | postHold |
+|-------------|-------|------------|---------------|---------|----------|
+| hips | drums | random | back | 2 | 5 |
+| hands | melody | loop | | | 3 |
+
+## Video Table
+| Form label | value |
+|------------|-------|
+| shouldCreateVideo? | yes |
+| audioFile | music.mp3 |
+| renderDir | renders/ |
+| charFile | character.blend |
+```
+
+### Architecture
+
+#### Modules
+| Module | Purpose |
+|--------|---------|
+| `headless/const.py` | Default values and constants |
+| `headless/models.py` | Data models with validation |
+| `headless/parser.py` | Markdown table parser |
+| `headless/pose_finder.py` | Pose catalog discovery |
+| `headless/animation_generator.py` | Animation creation |
+| `headless/video_renderer.py` | Video export with audio |
+| `mpc_headless.py` | Main entry point |
+
+#### Key Classes
+- **FormTable**: Form configuration with validation
+- **DanceTable**: Dance rows configuration
+- **HeadlessConfig**: Complete configuration container
+- **MarkdownTableParser**: Parse markdown to config
+- **AnimationGenerator**: Create Blender animations
+- **VideoRenderer**: Render with audio sync
+
+### Validation
+Comprehensive validation with tabular output:
+```
+| Field                | Status | Message                    |
+|---------------------|--------|----------------------------|
+| actionNameToCreate  | ✓      | Action name provided       |
+| midiFile            | ✗      | File not found: test.mid   |
+| poseCatalog         | ✓      | Catalog: hips              |
+```
+
+### Pre/Post Hold Logic
+- **preHold**: Don't start transitioning until X frames before
+- **postHold**: Hold pose for X frames before transitioning out
+- **MIN_FORCED_TRANSITION_FRAMES**: Always allow transition (default: 1)
+
+### Testing
+```bash
+# Run all headless tests
+python test/test_headless_all.py
+
+# Individual test suites
+python test/test_headless_models.py     # Data models
+python test/test_headless_parser.py     # Parser logic
+python test/test_headless_integration.py # Integration
+
+# Blender integration test
+blender --background --python mpc_headless.py -- test/example_input.md --validate-only
+```
+
+### Pose Catalog Resolution
+1. Search for catalog by name in poseBlendFile
+2. Find as subfolder (child or grandchild)
+3. Error if multiple conflicts found
+4. Poses ordered alphabetically by filename
+
+### Bone Conflict Detection
+Validates that different poseCatalogs don't use overlapping bones to prevent animation conflicts.
+
+### Video Rendering
+1. Creates temporary blend file
+2. Loads character from charFile
+3. Applies generated action
+4. Adds audio to sequencer
+5. Renders MP4 with H.264 codec
+6. Output: `YY-MM-DD-HH-MM-SS-charName-actionName.mp4`
+
 ## Version History
+- **0.7.0**: Headless mode with markdown input
 - **0.6.0**: PITCH_FOLLOW mode, Tone filtering, smart controls
 - **0.5.0**: ACTION mode, BPM timing, pose reordering
 - **0.4.0**: Workspace panels, config management

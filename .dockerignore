@@ -1,0 +1,21 @@
+# Docker ignore file
+.git
+.gitignore
+*.pyc
+__pycache__
+.pytest_cache
+.mypy_cache
+*.blend1
+*.blend2
+.DS_Store
+Thumbs.db
+node_modules
+.vscode
+.idea
+*.log
+*.tmp
+test_output/
+renders/
+*.mp4
+*.avi
+*.mov

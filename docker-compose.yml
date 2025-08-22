@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  midi-pose-cycler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        USERNAME: developer
+        USER_UID: 1000
+        USER_GID: 1000
+    image: midi-pose-cycler:latest
+    container_name: midi-pose-cycler-dev
+    
+    # Interactive mode with TTY
+    stdin_open: true
+    tty: true
+    
+    # Volume mappings - bidirectional sync
+    volumes:
+      # Map entire project directory to /workspace
+      - .:/workspace:rw
+      # Persist cache and config
+      - blender-cache:/home/developer/.cache
+      - blender-config:/home/developer/.config
+      
+    # Environment variables
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - BLENDER_USER_SCRIPTS=/workspace
+      - PYTHONPATH=/workspace:/opt/blender/4.5/python/lib/python3.11/site-packages
+      
+    # Network mode for display (if needed for GUI debugging)
+    network_mode: host
+    
+    # Working directory
+    working_dir: /workspace
+    
+    # Run as developer user
+    user: developer
+    
+    # Command to keep container running
+    command: /bin/bash
+
+volumes:
+  blender-cache:
+    driver: local
+  blender-config:
+    driver: local
