@@ -1,4 +1,9 @@
 assets/
+.claude/
+renders/
+*.blend
+
+headless_test/test_log*.txt
 
 # Environment files - NEVER COMMIT THESE!
 .env

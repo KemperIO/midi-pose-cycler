@@ -25,8 +25,8 @@ VALID_CYCLE_MODES: Final[set[str]] = {
 }
 
 # File format constants
-VIDEO_CODEC: Final[str] = "h264"
-VIDEO_CONTAINER: Final[str] = "mp4"
+VIDEO_CODEC: Final[str] = "H264"
+VIDEO_CONTAINER: Final[str] = "MPEG4"  # Blender uses MPEG4 for MP4 container
 VIDEO_QUALITY: Final[str] = "MEDIUM"
 
 # Render settings

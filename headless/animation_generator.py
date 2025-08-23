@@ -6,7 +6,7 @@ from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
 
 # Add vendor path for mido
-vendor_path = Path(__file__).parent.parent / "vendor"
+vendor_path = Path(__file__).parent.parent / "src" / "vendor"
 if str(vendor_path) not in sys.path:
     sys.path.insert(0, str(vendor_path))
 
@@ -101,19 +101,33 @@ class AnimationGenerator:
             
         poses = []
         
-        # Link the blend file to access its data
-        with self.bpy.data.libraries.load(blend_file, link=True) as (data_from, data_to):
-            # Look for actions that might contain poses
-            for action_name in data_from.actions:
-                if catalog_name.lower() in action_name.lower():
-                    data_to.actions.append(action_name)
+        # Read the catalog file to get catalog ID mapping
+        catalog_file = Path(blend_file).parent / "blender_assets.cats.txt"
+        catalog_id = None
         
-        # Find poses in the loaded actions
+        if catalog_file.exists():
+            with open(catalog_file, 'r') as f:
+                for line in f:
+                    if line.strip() and not line.startswith('#'):
+                        parts = line.strip().split(':')
+                        if len(parts) >= 3 and parts[2] == catalog_name:
+                            catalog_id = parts[0]
+                            break
+        
+        # Link the blend file to access its data
+        with self.bpy.data.libraries.load(blend_file, link=False) as (data_from, data_to):
+            # Load all actions to check their catalog IDs
+            data_to.actions = list(data_from.actions)
+        
+        # Find actions belonging to this catalog
         for action in self.bpy.data.actions:
-            if catalog_name.lower() in action.name.lower():
-                # Get pose markers from this action
-                for marker in action.pose_markers:
-                    poses.append(marker.name)
+            # Check if action has asset data with matching catalog ID
+            if hasattr(action, 'asset_data') and action.asset_data:
+                if catalog_id and str(action.asset_data.catalog_id) == catalog_id:
+                    poses.append(action.name)
+            # Also try name-based matching as fallback
+            elif catalog_name.lower() in action.name.lower():
+                poses.append(action.name)
         
         # Sort alphabetically as specified
         poses.sort()
@@ -200,6 +214,18 @@ class AnimationGenerator:
         
         # Create new action
         action = self.bpy.data.actions.new(name=action_name)
+        print(f"DEBUG: Created action {action.name}, ID: {action}, users: {action.users}")
+        
+        # Make sure the action has at least one user so it's saved
+        action.use_fake_user = True
+        
+        # Verify it's in the actions list
+        if action.name in self.bpy.data.actions:
+            print(f"DEBUG: Action {action.name} is in bpy.data.actions")
+        else:
+            print(f"DEBUG: Action {action.name} is NOT in bpy.data.actions!")
+            print(f"DEBUG: Available actions: {list(self.bpy.data.actions.keys())[:5]}...")
+        
         return action
     
     def apply_pose_to_action(self, action, 
@@ -207,19 +233,26 @@ class AnimationGenerator:
                             pose_name: str, frame: int,
                             interpolation: str):
         """Apply a pose to an action at a specific frame."""
-        # Find the pose marker
-        marker = None
-        for m in pose_action.pose_markers:
-            if m.name == pose_name:
-                marker = m
-                break
+        # If pose_name is actually an action name, use frame 0 as the pose
+        pose_frame = 0
         
-        if not marker:
-            print(f"Warning: Pose '{pose_name}' not found")
-            return
-        
-        # Get the pose frame
-        pose_frame = marker.frame
+        # Check if this is a pose library with markers
+        if hasattr(pose_action, 'pose_markers') and pose_action.pose_markers:
+            # Find the pose marker
+            marker = None
+            for m in pose_action.pose_markers:
+                if m.name == pose_name:
+                    marker = m
+                    break
+            
+            if not marker:
+                print(f"Warning: Pose '{pose_name}' not found in markers")
+                return
+            
+            pose_frame = marker.frame
+        else:
+            # For regular actions, use frame 0 as the pose
+            pose_frame = 0
         
         # Copy keyframes from pose to target action
         for fcurve_src in pose_action.fcurves:
@@ -255,6 +288,10 @@ class AnimationGenerator:
         Returns:
             Path to the output blend file
         """
+        # First, load all pose actions from the pose blend file
+        with self.bpy.data.libraries.load(self.config.form.poseBlendFile, link=False) as (data_from, data_to):
+            data_to.actions = list(data_from.actions)
+        
         # Load MIDI tracks
         midi_tracks = self.load_midi_tracks()
         
@@ -264,6 +301,7 @@ class AnimationGenerator:
         
         # Create main action
         action = self.create_action(self.config.form.actionNameToCreate)
+        print(f"Created action: {action.name if action else 'None'}")
         
         # Process each dance row
         for dance_row in self.config.dance.rows:
@@ -299,32 +337,40 @@ class AnimationGenerator:
             )
             
             # Apply keyframes to action
-            # First, we need to load the pose actions
-            with self.bpy.data.libraries.load(self.config.form.poseBlendFile, link=False) as (data_from, data_to):
-                for action_name in data_from.actions:
-                    if dance_row.poseCatalog.lower() in action_name.lower():
-                        data_to.actions.append(action_name)
-            
-            # Find the pose action
-            pose_action = None
-            for act in self.bpy.data.actions:
-                if dance_row.poseCatalog.lower() in act.name.lower():
-                    pose_action = act
-                    break
-            
-            if pose_action:
-                # Apply each keyframe
-                for kf in keyframes:
+            # Apply each keyframe
+            for kf in keyframes:
+                # Find the pose action for this specific pose
+                pose_action = None
+                for act in self.bpy.data.actions:
+                    if act.name == kf.pose_name:
+                        pose_action = act
+                        break
+                
+                if pose_action:
                     self.apply_pose_to_action(
                         action, pose_action, kf.pose_name,
                         kf.frame, kf.interpolation
                     )
+                else:
+                    print(f"Warning: Pose action '{kf.pose_name}' not found")
         
         # Save the blend file
         if not str(output_path).endswith('.blend'):
             output_path = output_path.with_suffix('.blend')
         
         if self.bpy:
+            print(f"Actions before save:")
+            for act in self.bpy.data.actions:
+                print(f"  - {act.name}")
+                if act.name == self.config.form.actionNameToCreate:
+                    print(f"    ^^^ FOUND TARGET ACTION!")
+            
+            # Try to find our action explicitly
+            if self.config.form.actionNameToCreate in self.bpy.data.actions:
+                print(f"Target action '{self.config.form.actionNameToCreate}' exists!")
+            else:
+                print(f"Target action '{self.config.form.actionNameToCreate}' NOT FOUND!")
+            
             self.bpy.ops.wm.save_as_mainfile(filepath=str(output_path))
         
         print(f"Animation saved to: {output_path}")

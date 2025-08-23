@@ -4,11 +4,12 @@
 Usage:
     # Direct invocation (NEW):
     python mpc_headless.py input.md
+    python mpc_headless.py -s "markdown string"
     python mpc_headless.py --input "markdown string"
     
     # Or traditional Blender invocation:
     blender --background --python mpc_headless.py -- input.md
-    blender --background --python mpc_headless.py -- --input "markdown string"
+    blender --background --python mpc_headless.py -- -s "markdown string"
 """
 
 import sys
@@ -31,12 +32,20 @@ def import_blender_modules():
 
 def run_in_blender(args):
     """Run this script inside Blender with the given arguments."""
+    # Check if we're in Docker
+    in_docker = os.path.exists('/.dockerenv')
+    
     # Find Blender executable
-    blender_paths = [
-        "/mnt/c/Program Files/Blender Foundation/Blender 4.5/blender.exe",
-        "C:\\Program Files\\Blender Foundation\\Blender 4.5\\blender.exe",
-        "blender",  # Try system PATH
-    ]
+    if in_docker:
+        blender_paths = [
+            "blender",  # In Docker, Blender should be in PATH
+        ]
+    else:
+        blender_paths = [
+            "/mnt/c/Program Files/Blender Foundation/Blender 4.5/blender.exe",
+            "C:\\Program Files\\Blender Foundation\\Blender 4.5\\blender.exe",
+            "blender",  # Try system PATH
+        ]
     
     blender_exe = None
     for path in blender_paths:
@@ -72,6 +81,7 @@ def parse_arguments(argv=None):
     parser = argparse.ArgumentParser(description='MIDI Pose Cycler Headless Mode')
     parser.add_argument('input', nargs='?', help='Path to markdown input file')
     parser.add_argument('--input', dest='input_string', help='Markdown input as string')
+    parser.add_argument('-s', dest='input_string_short', help='Markdown input as string (short form)')
     parser.add_argument('--validate-only', action='store_true', 
                        help='Only validate input without generating')
     return parser.parse_args(argv)
@@ -91,8 +101,8 @@ def main():
     args = parse_arguments(argv)
     
     # Get input markdown
-    if args.input_string:
-        markdown_input = args.input_string
+    if args.input_string or args.input_string_short:
+        markdown_input = args.input_string or args.input_string_short
     elif args.input:
         input_path = Path(args.input)
         if not input_path.exists():

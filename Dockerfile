@@ -35,6 +35,7 @@ RUN apt-get update && apt-get install -y \
     nano \
     ca-certificates \
     gnupg \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js 20 (required for Claude CLI)

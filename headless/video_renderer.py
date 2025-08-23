@@ -35,58 +35,81 @@ class VideoRenderer:
             True if setup successful, False otherwise
         """
         # Clear existing scene
-        bpy.ops.wm.read_homefile(use_empty=True)
+        self.bpy.ops.wm.read_homefile(use_empty=True)
         
         # Link character from file
         try:
-            with bpy.data.libraries.load(char_file, link=False) as (data_from, data_to):
+            with self.bpy.data.libraries.load(char_file, link=False) as (data_from, data_to):
                 # Find character collection
                 char_collection = None
                 char_name = Path(char_file).stem  # Use filename as hint
                 
+                print(f"Looking for character collection. File stem: {char_name}")
+                print(f"Available collections: {list(data_from.collections)}")
+                
+                # First try exact match (case-insensitive) with base name
+                base_name = char_name.split('-')[0]  # Get first part before hyphen
                 for coll_name in data_from.collections:
-                    if char_name.lower() in coll_name.lower():
+                    if coll_name.lower() == base_name.lower():
                         data_to.collections.append(coll_name)
                         char_collection = coll_name
+                        print(f"Found exact match collection: {coll_name}")
                         break
+                
+                # If no exact match, try contains match
+                if not char_collection:
+                    for coll_name in data_from.collections:
+                        if base_name.lower() in coll_name.lower() and '.' not in coll_name:
+                            # Avoid nested collections like "Refs.Dobby"
+                            data_to.collections.append(coll_name)
+                            char_collection = coll_name
+                            print(f"Found matching collection: {coll_name}")
+                            break
                 
                 if not char_collection and data_from.collections:
                     # Fallback to first collection
                     data_to.collections.append(data_from.collections[0])
                     char_collection = data_from.collections[0]
+                    print(f"Using fallback collection: {char_collection}")
             
             # Link collection to scene
-            if char_collection and char_collection in bpy.data.collections:
-                scene_collection = bpy.context.scene.collection
-                scene_collection.children.link(bpy.data.collections[char_collection])
+            if char_collection and char_collection in self.bpy.data.collections:
+                scene_collection = self.bpy.context.scene.collection
+                scene_collection.children.link(self.bpy.data.collections[char_collection])
             else:
                 print(f"Error: Could not find character collection in {char_file}")
                 return False
             
             # Find armature in the collection
             armature = None
-            for obj in bpy.data.collections[char_collection].objects:
+            print(f"Searching for armature in collection: {char_collection}")
+            collection_objects = list(self.bpy.data.collections[char_collection].objects)
+            print(f"Objects in collection: {[(obj.name, obj.type) for obj in collection_objects]}")
+            
+            for obj in collection_objects:
                 if obj.type == 'ARMATURE':
                     armature = obj
+                    print(f"Found armature: {armature.name}")
                     break
             
             if not armature:
-                print(f"Error: No armature found in character collection")
+                print(f"Error: No armature found in character collection '{char_collection}'")
+                print(f"Available objects: {collection_objects}")
                 return False
             
             # Set armature as active
-            bpy.context.view_layer.objects.active = armature
+            self.bpy.context.view_layer.objects.active = armature
             armature.select_set(True)
             
             # Load the action from the output blend file
-            with bpy.data.libraries.load(self.config.form.blendFileToOutputAction, link=False) as (data_from, data_to):
+            with self.bpy.data.libraries.load(self.config.form.blendFileToOutputAction, link=False) as (data_from, data_to):
                 if action_name in data_from.actions:
                     data_to.actions.append(action_name)
             
             # Apply action to armature
-            if action_name in bpy.data.actions:
+            if action_name in self.bpy.data.actions:
                 armature.animation_data_create()
-                armature.animation_data.action = bpy.data.actions[action_name]
+                armature.animation_data.action = self.bpy.data.actions[action_name]
             else:
                 print(f"Error: Action '{action_name}' not found")
                 return False
@@ -106,45 +129,54 @@ class VideoRenderer:
     def setup_camera(self):
         """Setup a reasonable camera angle."""
         # Create camera if not exists
-        if 'Camera' not in bpy.data.objects:
-            cam_data = bpy.data.cameras.new('Camera')
-            cam = bpy.data.objects.new('Camera', cam_data)
-            bpy.context.scene.collection.objects.link(cam)
+        if 'Camera' not in self.bpy.data.objects:
+            cam_data = self.bpy.data.cameras.new('Camera')
+            cam = self.bpy.data.objects.new('Camera', cam_data)
+            self.bpy.context.scene.collection.objects.link(cam)
         else:
-            cam = bpy.data.objects['Camera']
+            cam = self.bpy.data.objects['Camera']
         
         # Position camera
         cam.location = (7, -7, 5)
         cam.rotation_euler = (1.1, 0, 0.785)  # ~63°, 0°, 45°
         
         # Set as active camera
-        bpy.context.scene.camera = cam
+        self.bpy.context.scene.camera = cam
     
     def setup_lighting(self):
         """Setup basic lighting for the scene."""
         # Create sun light
-        if 'Sun' not in bpy.data.objects:
-            light_data = bpy.data.lights.new('Sun', 'SUN')
+        if 'Sun' not in self.bpy.data.objects:
+            light_data = self.bpy.data.lights.new('Sun', 'SUN')
             light_data.energy = 1.0
-            light = bpy.data.objects.new('Sun', light_data)
-            bpy.context.scene.collection.objects.link(light)
+            light = self.bpy.data.objects.new('Sun', light_data)
+            self.bpy.context.scene.collection.objects.link(light)
         else:
-            light = bpy.data.objects['Sun']
+            light = self.bpy.data.objects['Sun']
         
         # Position light
         light.location = (5, 5, 10)
         light.rotation_euler = (0.6, 0.2, 0)
         
         # Add ambient light (world settings)
-        bpy.context.scene.world.node_tree.nodes["Background"].inputs[0].default_value = (0.1, 0.1, 0.1, 1.0)
+        if not self.bpy.context.scene.world:
+            # Create a world if it doesn't exist
+            world = self.bpy.data.worlds.new("World")
+            self.bpy.context.scene.world = world
+            world.use_nodes = True
+        
+        if self.bpy.context.scene.world and self.bpy.context.scene.world.node_tree:
+            bg_node = self.bpy.context.scene.world.node_tree.nodes.get("Background")
+            if bg_node:
+                bg_node.inputs[0].default_value = (0.1, 0.1, 0.1, 1.0)
     
     def load_audio(self, audio_file: str):
         """Load audio file into the video sequence editor."""
         # Ensure sequence editor exists
-        if not bpy.context.scene.sequence_editor:
-            bpy.context.scene.sequence_editor_create()
+        if not self.bpy.context.scene.sequence_editor:
+            self.bpy.context.scene.sequence_editor_create()
         
-        seq_editor = bpy.context.scene.sequence_editor
+        seq_editor = self.bpy.context.scene.sequence_editor
         
         # Clear existing strips
         for strip in seq_editor.sequences:
@@ -160,11 +192,11 @@ class VideoRenderer:
         
         # Set scene end frame to match audio duration
         if audio_strip:
-            bpy.context.scene.frame_end = int(audio_strip.frame_final_duration)
+            self.bpy.context.scene.frame_end = int(audio_strip.frame_final_duration)
     
     def configure_render_settings(self, output_path: str):
         """Configure render settings for video output."""
-        scene = bpy.context.scene
+        scene = self.bpy.context.scene
         
         # Resolution
         scene.render.resolution_x = RENDER_RESOLUTION_X
@@ -235,12 +267,12 @@ class VideoRenderer:
         self.configure_render_settings(str(output_path))
         
         # Save temp blend file
-        bpy.ops.wm.save_as_mainfile(filepath=str(temp_blend))
+        self.bpy.ops.wm.save_as_mainfile(filepath=str(temp_blend))
         
         # Render animation
         print(f"Rendering video to: {output_path}")
         try:
-            bpy.ops.render.render(animation=True)
+            self.bpy.ops.render.render(animation=True)
             print(f"Video rendered successfully: {output_path}")
             return str(output_path)
         except Exception as e:
