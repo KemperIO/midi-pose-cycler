@@ -7,7 +7,6 @@
 | beatsPerBar             | 4                           |
 | blendFileToOutputAction | headless_test/actions.blend   |
 | poseBlendFile           | assets/dobby-poses.blend           |
-| poseCatalog             | k3                          |
 | midiFile                | assets/eight-bars-thang.mid |
 
 
@@ -23,4 +22,6 @@
 
 | poseCatalog | track  | cycle mode   | interpolation | preHold | postHold |
 |-------------|--------|--------------|---------------|---------|----------|
-| k3          | shaker | random       | back          | 2       | 5        |
+| hips        | shaker | random       | back          | 2       | 5        |
+| feet        | horns  | loop         | quartic       |         |          |
+| hands       | quack  | pitch_follow | quartic       |         | 3        |

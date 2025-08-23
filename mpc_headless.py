@@ -24,10 +24,11 @@ sys.path.insert(0, str(Path(__file__).parent))
 # Only import Blender-dependent modules if we're in Blender
 def import_blender_modules():
     """Import modules that require Blender."""
-    global MarkdownTableParser, AnimationGenerator, VideoRenderer
+    global MarkdownTableParser, AnimationGenerator, VideoRenderer, SimpleVideoRenderer
     from headless.parser import MarkdownTableParser
     from headless.animation_generator import AnimationGenerator
     from headless.video_renderer import VideoRenderer
+    from headless.simple_video_renderer import SimpleVideoRenderer
 
 
 def run_in_blender(args):
@@ -157,7 +158,8 @@ def main():
         print("="*80)
         
         try:
-            renderer = VideoRenderer(config)
+            # Use simple renderer for POC
+            renderer = SimpleVideoRenderer(config)
             video_file = renderer.render()
             if video_file:
                 print(f"\n✓ Video rendered: {video_file}")

@@ -95,7 +95,10 @@ class AnimationGenerator:
         return tracks
     
     def get_poses_for_catalog(self, catalog_name: str, blend_file: str) -> List[str]:
-        """Get poses from a catalog in the blend file."""
+        """Get poses from a catalog in the blend file.
+        
+        Note: This assumes actions have already been loaded from the blend file.
+        """
         if not self.bpy:
             return []
             
@@ -108,26 +111,27 @@ class AnimationGenerator:
         if catalog_file.exists():
             with open(catalog_file, 'r') as f:
                 for line in f:
-                    if line.strip() and not line.startswith('#'):
+                    if line.strip() and not line.startswith('#') and not line.startswith('VERSION'):
                         parts = line.strip().split(':')
                         if len(parts) >= 3 and parts[2] == catalog_name:
                             catalog_id = parts[0]
+                            print(f"Found catalog ID for '{catalog_name}': {catalog_id}")
                             break
         
-        # Link the blend file to access its data
-        with self.bpy.data.libraries.load(blend_file, link=False) as (data_from, data_to):
-            # Load all actions to check their catalog IDs
-            data_to.actions = list(data_from.actions)
+        if not catalog_id:
+            print(f"Warning: No catalog ID found for '{catalog_name}' in {catalog_file}")
         
-        # Find actions belonging to this catalog
+        # Find actions belonging to this catalog (already loaded)
         for action in self.bpy.data.actions:
             # Check if action has asset data with matching catalog ID
             if hasattr(action, 'asset_data') and action.asset_data:
                 if catalog_id and str(action.asset_data.catalog_id) == catalog_id:
                     poses.append(action.name)
+                    print(f"  Found pose in catalog: {action.name}")
             # Also try name-based matching as fallback
             elif catalog_name.lower() in action.name.lower():
                 poses.append(action.name)
+                print(f"  Found pose by name match: {action.name}")
         
         # Sort alphabetically as specified
         poses.sort()

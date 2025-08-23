@@ -491,8 +491,12 @@ When PITCH_FOLLOW is selected:
 
 ## Headless Mode
 
+**Progress Tracking**: See `headless/headless-progress.md` for current status, known issues, and future work.
+
 ### Overview
 Generate animations from markdown table input without GUI. Object-oriented, typed, modular design.
+
+**Vision**: Create beautiful animation-to-music tool - art for humanity. Enable creators to generate reusable animations across different characters from simple markdown input.
 
 ### Usage
 ```bash
