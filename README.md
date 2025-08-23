@@ -1,5 +1,6 @@
 # MIDI Pose Cycler
 
+
 A Blender 4.5+ extension for synchronizing pose/action animations to MIDI events. Generate complex character animations driven by musical timing.
 
 ## 🐳 Docker Development Environment

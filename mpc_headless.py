@@ -1,31 +1,86 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """Headless MIDI Pose Cycler - Generate animations from markdown table input.
 
 Usage:
+    # Direct invocation (NEW):
+    python mpc_headless.py input.md
+    python mpc_headless.py --input "markdown string"
+    
+    # Or traditional Blender invocation:
     blender --background --python mpc_headless.py -- input.md
     blender --background --python mpc_headless.py -- --input "markdown string"
 """
 
 import sys
+import os
+import subprocess
 import argparse
 from pathlib import Path
 
 # Add headless module to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from headless.parser import MarkdownTableParser
-from headless.animation_generator import AnimationGenerator
-from headless.video_renderer import VideoRenderer
+# Only import Blender-dependent modules if we're in Blender
+def import_blender_modules():
+    """Import modules that require Blender."""
+    global MarkdownTableParser, AnimationGenerator, VideoRenderer
+    from headless.parser import MarkdownTableParser
+    from headless.animation_generator import AnimationGenerator
+    from headless.video_renderer import VideoRenderer
 
 
-def main():
-    """Main entry point for headless operation."""
-    # Parse command line arguments
+def run_in_blender(args):
+    """Run this script inside Blender with the given arguments."""
+    # Find Blender executable
+    blender_paths = [
+        "/mnt/c/Program Files/Blender Foundation/Blender 4.5/blender.exe",
+        "C:\\Program Files\\Blender Foundation\\Blender 4.5\\blender.exe",
+        "blender",  # Try system PATH
+    ]
+    
+    blender_exe = None
+    for path in blender_paths:
+        if os.path.exists(path) or path == "blender":
+            blender_exe = path
+            break
+    
+    if not blender_exe:
+        print("Error: Could not find Blender executable")
+        print("Please ensure Blender 4.5 is installed or available in PATH")
+        return 1
+    
+    # Build command
+    cmd = [
+        blender_exe,
+        "--background",
+        "--factory-startup",
+        "--python", __file__,
+        "--"
+    ] + args
+    
+    # Run Blender
+    # Only show command if verbose or debugging
+    if os.environ.get('DEBUG') or '--verbose' in args:
+        print(f"Launching Blender: {' '.join(cmd)}")
+    
+    result = subprocess.run(cmd, capture_output=False, text=True)
+    return result.returncode
+
+
+def parse_arguments(argv=None):
+    """Parse command line arguments."""
     parser = argparse.ArgumentParser(description='MIDI Pose Cycler Headless Mode')
     parser.add_argument('input', nargs='?', help='Path to markdown input file')
     parser.add_argument('--input', dest='input_string', help='Markdown input as string')
     parser.add_argument('--validate-only', action='store_true', 
                        help='Only validate input without generating')
+    return parser.parse_args(argv)
+
+
+def main():
+    """Main entry point for headless operation."""
+    # Import Blender modules now that we're in Blender
+    import_blender_modules()
     
     # Handle Blender's -- separator
     if '--' in sys.argv:
@@ -33,7 +88,7 @@ def main():
     else:
         argv = sys.argv[1:]
     
-    args = parser.parse_args(argv)
+    args = parse_arguments(argv)
     
     # Get input markdown
     if args.input_string:
@@ -115,9 +170,18 @@ if __name__ == "__main__":
     # Check if running in Blender
     try:
         import bpy
+        # We're in Blender, run the main function
+        sys.exit(main())
     except ImportError:
-        print("Error: This script must be run from within Blender")
-        print("Usage: blender --background --python mpc_headless.py -- input.md")
-        sys.exit(1)
-    
-    sys.exit(main())
+        # We're not in Blender, so launch Blender with this script
+        # Parse arguments to pass them to Blender
+        args = sys.argv[1:]
+        
+        if not args:
+            print("Error: No input provided")
+            print("Usage: python mpc_headless.py input.md")
+            print("   or: python mpc_headless.py --input \"markdown string\"")
+            sys.exit(1)
+        
+        # Run this script in Blender
+        sys.exit(run_in_blender(args))

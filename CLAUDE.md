@@ -63,29 +63,29 @@ The "ERROR: mido library not available" on reload is a known issue. Always check
 
 ## UX Components Overview
 
-| Component | Blender Name | Description | Example Usage |
-|-----------|--------------|-------------|---------------|
-| **N-Pane Tabs** | `bl_category` | Sidebar tabs in 3D Viewport | MPC-Run, MPC-Pose, MPC-MIDI |
-| **Panels** | `Panel` class | Grouped UI sections | Track Selection, Pose Order |
-| **Collapsible Regions** | Box with toggle | Expandable UI sections | Note filters per track |
-| **Grid Flow** | `grid_flow()` | Multi-column checkbox layout | Track/pose selection |
-| **Property Fields** | `prop()` | Input fields and checkboxes | Hold Frames, BPM |
-| **Operators** | `Operator` class | Action buttons | Generate Animation, Load MIDI |
-| **Tooltips** | `description` property | Hover text explanations | Interpolation types |
+| Component               | Blender Name         | Description                   | Example Usage                |
+|-------------------------|----------------------|-------------------------------|------------------------------|
+| **N-Pane Tabs**         | `bl_category`        | Sidebar tabs in 3D Viewport  | MPC-Run, MPC-Pose, MPC-MIDI |
+| **Panels**              | `Panel` class        | Grouped UI sections           | Track Selection, Pose Order  |
+| **Collapsible Regions** | Box with toggle      | Expandable UI sections        | Note filters per track       |
+| **Grid Flow**           | `grid_flow()`        | Multi-column checkbox layout  | Track/pose selection         |
+| **Property Fields**     | `prop()`             | Input fields and checkboxes   | Hold Frames, BPM             |
+| **Operators**           | `Operator` class     | Action buttons                | Generate Animation, Load MIDI|
+| **Tooltips**            | `description` property| Hover text explanations      | Interpolation types          |
 
 ## Features
 
-| Feature            | Description                                          |
-|--------------------|------------------------------------------------------|
-| **MIDI Analysis**  | Multi-track support, automatic track merging by name|
-| **Animation Modes**| POSE (single frame) or ACTION (full animation)      |
-| **Pose Management**| Reorderable selection with drag handles             |
-| **Cycle Modes**    | LOOP, BOOMERANG, RANDOM, PITCH_FOLLOW              |
-| **Timing Controls**| Smart (bars/beats) or dumb (frames)                 |
-| **Note Filtering** | Per-track collapsible filters with checkboxes       |
-| **Interpolation**  | 13 types with hover explanations                    |
-| **Dynamic Tracks** | Generate events at intervals (Every X beats/bars)   |
-| **Smart Controls** | Linked frame ↔ bar/beat conversion                  |
+| Feature             | Description                                          |
+|---------------------|------------------------------------------------------|
+| **MIDI Analysis**   | Multi-track support, automatic track merging by name|
+| **Animation Modes** | POSE (single frame) or ACTION (full animation)      |
+| **Pose Management** | Reorderable selection with drag handles             |
+| **Cycle Modes**     | LOOP, BOOMERANG, RANDOM, PITCH_FOLLOW              |
+| **Timing Controls** | Smart (bars/beats) or dumb (frames)                 |
+| **Note Filtering**  | Per-track collapsible filters with checkboxes       |
+| **Interpolation**   | 13 types with hover explanations                    |
+| **Dynamic Tracks**  | Generate events at intervals (Every X beats/bars)   |
+| **Smart Controls**  | Linked frame ↔ bar/beat conversion                  |
 
 ## Installation
 
@@ -111,11 +111,11 @@ In 3D Viewport, press **N** to open sidebar → Three tabs available:
 
 #### Tab Layout
 
-| Tab Name | Panels | Features |
-|----------|--------|----------|
-| **MPC-Run** | • Run Animation<br>• Action Settings<br>• Timing<br>• Preview<br>• Configurations | Generate button, action dropdown selector, timing settings, preview of selections, save/load configs |
-| **MPC-Pose** | • Pose Selection<br>• Pose Order<br>• Cycle Settings | Grid-based pose selection, drag-and-drop ordering with large arrows, cycle mode settings |
-| **MPC-MIDI** | • MIDI File<br>• Track Selection<br>• Note Filter | MIDI file loading, track selection with radio buttons, note filtering with nicknames |
+| Tab Name     | Panels                                                                    | Features                                                                               |
+|--------------|---------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
+| **MPC-Run**  | • Run Animation<br>• Action Settings<br>• Timing<br>• Preview<br>• Configurations | Generate button, action dropdown selector, timing settings, preview of selections, save/load configs |
+| **MPC-Pose** | • Pose Selection<br>• Pose Order<br>• Cycle Settings                             | Grid-based pose selection, drag-and-drop ordering with large arrows, cycle mode settings             |
+| **MPC-MIDI** | • MIDI File<br>• Track Selection<br>• Note Filter                                | MIDI file loading, track selection with radio buttons, note filtering with nicknames                 |
 
 #### Workflow
 1. **Load MIDI**: Click "Load MIDI File" or drag from File Browser
@@ -130,13 +130,13 @@ In 3D Viewport, press **N** to open sidebar → Three tabs available:
 
 #### Key Settings
 
-| Step         | Action                                    |
-|--------------|-------------------------------------------|
-| Load MIDI    | Drag from File Browser or use Load button|
-| Select Track | Click track name (auto-analyzes)         |
-| Choose Poses | Select & reorder with arrows             |
-| Set Mode     | POSE (single frame) or ACTION (full)     |
-| Config Timing| BPM, bars/beats or frame numbers         |
+| Step          | Action                                    |
+|---------------|-------------------------------------------|
+| Load MIDI     | Drag from File Browser or use Load button|
+| Select Track  | Click track name (auto-analyzes)         |
+| Choose Poses  | Select & reorder with arrows             |
+| Set Mode      | POSE (single frame) or ACTION (full)     |
+| Config Timing | BPM, bars/beats or frame numbers         |
 
 #### Generate Animation
 Click "GENERATE ANIMATION" → Creates/updates action with keyframes
@@ -149,25 +149,25 @@ Click "GENERATE ANIMATION" → Creates/updates action with keyframes
 
 ### Input Nodes
 
-| Node | Purpose | Inputs | Outputs |
-|------|---------|--------|---------|
-| **MIDI Input** | Load & analyze MIDI file | - | MIDI Data |
-| **Pose Input** | Select poses from project | - | Pose Data |
+| Node                | Purpose                           | Inputs       | Outputs       |
+|---------------------|-----------------------------------|--------------|---------------|
+| **MIDI Input**      | Load & analyze MIDI file         | -            | MIDI Data     |
+| **Pose Input**      | Select poses from project        | -            | Pose Data     |
 
 ### Processing Nodes
 
-| Node | Purpose | Inputs | Outputs |
-|------|---------|--------|---------|
-| **Track Selector** | Choose MIDI track | MIDI Data | Track Data |
-| **Note Filter** | Filter notes (ALL/Include/Exclude/Range) | Track Data | Filtered Data |
-| **Pose Sequence** | Order & cycle poses | Pose Data | Sequence |
-| **Timing** | Configure hold, interpolation, BPM | MIDI + Poses | Animation |
+| Node                | Purpose                           | Inputs       | Outputs       |
+|---------------------|-----------------------------------|--------------|---------------|
+| **Track Selector**  | Choose MIDI track                         | MIDI Data    | Track Data    |
+| **Note Filter**     | Filter notes (ALL/Include/Exclude/Range)  | Track Data   | Filtered Data |
+| **Pose Sequence**   | Order & cycle poses                       | Pose Data    | Sequence      |
+| **Timing**          | Configure hold, interpolation, BPM        | MIDI + Poses | Animation     |
 
 ### Output Node
 
-| Node | Purpose | Inputs | Outputs |
-|------|---------|--------|---------|
-| **Animation Output** | Generate keyframes | Animation | Action |
+| Node                | Purpose                           | Inputs       | Outputs       |
+|---------------------|-----------------------------------|--------------|---------------|
+| **Animation Output**| Generate keyframes                        | Animation    | Action        |
 
 ### Node Properties
 
@@ -220,27 +220,27 @@ MIDI File → Track Analysis → Note Events → Frame Timing → Keyframe Gener
 
 ### Key Properties
 
-| Property              | Type  | Default | Description                      |
-|-----------------------|-------|---------|----------------------------------|
-| `animation_mode`      | Enum  | POSE    | POSE or ACTION mode              |
-| `pose_cycle_mode`     | Enum  | LOOP    | LOOP/BOOMERANG/RANDOM/PITCH_FOLLOW |
-| `frames_to_hold`      | Int   | 3       | Hold duration per pose           |
-| `interpolation_type`  | Enum  | EXPO    | Transition type                  |
-| `bpm`                 | Float | 120     | Beats per minute                 |
-| `beats_per_bar`       | Int   | 4       | Time signature numerator         |
-| `use_smart_timing`    | Bool  | False   | Musical vs frame timing          |
-| `midi_start_frame`    | Int   | 1       | Animation start frame            |
-| `skip_keyframe_warning`| Bool  | False   | Suppress overwrite dialog        |
+| Property                | Type  | Default | Description                      |
+|-------------------------|-------|---------|----------------------------------|
+| `animation_mode`        | Enum  | POSE    | POSE or ACTION mode                 |
+| `pose_cycle_mode`       | Enum  | LOOP    | LOOP/BOOMERANG/RANDOM/PITCH_FOLLOW  |
+| `frames_to_hold`        | Int   | 3       | Hold duration per pose              |
+| `interpolation_type`    | Enum  | EXPO    | Transition type                      |
+| `bpm`                   | Float | 120     | Beats per minute                     |
+| `beats_per_bar`         | Int   | 4       | Time signature numerator            |
+| `use_smart_timing`      | Bool  | False   | Musical vs frame timing             |
+| `midi_start_frame`      | Int   | 1       | Animation start frame                |
+| `skip_keyframe_warning` | Bool  | False   | Suppress overwrite dialog           |
 
 ### BPM Usage
 
 BPM is **ONLY** used in these specific cases:
 
-| Use Case | Description | Formula |
-|----------|-------------|---------|
-| **Smart Timing Start** | Convert bar/beat to frame | `frame = (bar-1) * beats_per_bar * frames_per_beat + (beat-1) * frames_per_beat + 1` |
-| **Smart Timing Duration** | Convert bars/beats to frames | `frames = bars * beats_per_bar * frames_per_beat + beats * frames_per_beat` |
-| **Dynamic Track** | Generate events at intervals | `frame = beat_number * frames_per_beat` |
+| Use Case                 | Description                   | Formula                                                                              |
+|--------------------------|-------------------------------|--------------------------------------------------------------------------------------|
+| **Smart Timing Start**   | Convert bar/beat to frame    | `frame = (bar-1) * beats_per_bar * frames_per_beat + (beat-1) * frames_per_beat + 1` |
+| **Smart Timing Duration**| Convert bars/beats to frames | `frames = bars * beats_per_bar * frames_per_beat + beats * frames_per_beat`          |
+| **Dynamic Track**        | Generate events at intervals | `frame = beat_number * frames_per_beat`                                              |
 
 Where: `frames_per_beat = (60.0 / bpm) * fps`
 
@@ -248,11 +248,11 @@ Where: `frames_per_beat = (60.0 / bpm) * fps`
 
 Bi-directional controls that update each other:
 
-| Frame Control | Musical Control | Conversion |
-|---------------|-----------------|------------|
-| Start Frame | Start Bar/Beat | `bar = floor(frame / frames_per_bar) + 1` |
-| Duration Frames | Duration Bars/Beats | `bars = floor(frames / frames_per_bar)` |
-| Hold Frames | Hold Beats | `beats = frames / frames_per_beat` |
+| Frame Control    | Musical Control      | Conversion                              |
+|------------------|----------------------|-----------------------------------------|
+| Start Frame      | Start Bar/Beat       | `bar = floor(frame / frames_per_bar) + 1` |
+| Duration Frames  | Duration Bars/Beats  | `bars = floor(frames / frames_per_bar)`   |
+| Hold Frames      | Hold Beats           | `beats = frames / frames_per_beat`        |
 
 ### Timing Calculation
 ```python
@@ -268,14 +268,14 @@ duration = frame_limit if use_frame_limit else total_frames
 
 ## Operators Reference
 
-| Operator          | ID                          | Function             |
-|-------------------|-----------------------------|----------------------|
-| Load MIDI         | `midipose.load_midi`        | Import & analyze MIDI|
-| Select Track      | `midipose.select_track`     | Choose & analyze track|
-| Refresh Poses     | `midipose.refresh_poses`    | Scan project actions |
-| Move Pose         | `midipose.move_pose`        | Reorder selection    |
-| Render Animation  | `midipose.render_animation` | Generate keyframes   |
-| Create Workspace  | `midipose.create_workspace` | Setup UI workspace   |
+| Operator          | ID                          | Function               |
+|-------------------|-----------------------------|------------------------|
+| Load MIDI         | `midipose.load_midi`        | Import & analyze MIDI  |
+| Select Track      | `midipose.select_track`     | Choose & analyze track |
+| Refresh Poses     | `midipose.refresh_poses`    | Scan project actions   |
+| Move Pose         | `midipose.move_pose`        | Reorder selection      |
+| Render Animation  | `midipose.render_animation` | Generate keyframes     |
+| Create Workspace  | `midipose.create_workspace` | Setup UI workspace     |
 
 ## Configuration Management
 
@@ -347,11 +347,11 @@ class ConfigData(TypedDict):
 
 ## Workspace Panel Organization
 
-| Panel            | Content                                   |
-|------------------|-------------------------------------------|
-| **Main**         | MIDI file, action settings, timing, configs|
-| **Poses**        | Selection, ordering, cycle mode          |
-| **MIDI**         | Tracks, notes, filtering                 |
+| Panel            | Content                                      |
+|------------------|----------------------------------------------|
+| **Main**         | MIDI file, action settings, timing, configs |
+| **Poses**        | Selection, ordering, cycle mode             |
+| **MIDI**         | Tracks, notes, filtering                    |
 
 ## Blender Compliance
 - **No External Dependencies**: mido bundled in vendor/
@@ -378,15 +378,15 @@ python test/run_test_wrapper.py test_midi_operator
 
 ### Current Test Coverage
 
-| Test | Purpose | What it Verifies |
-|------|---------|------------------|
-| **test_no_errors** | Core addon health | ✓ Addon loads without console errors<br>✓ All panels registered<br>✓ Properties initialized |
-| **test_3tab_layout** | UI structure | ✓ All 3 tabs exist (MPC-Run, MPC-Pose, MPC-MIDI)<br>✓ All panels in correct tabs<br>✓ bl_category set correctly |
-| **test_multitrack** | Multi-track selection | ✓ Multiple tracks can be selected<br>✓ Per-track note filters work<br>✓ Filter operators function |
-| **test_midi_operator** | User workflow | ✓ MIDI file loads via operator<br>✓ Tracks populate correctly<br>✓ Note selection works |
-| **test_midi_simple** | Core MIDI | ✓ mido library imports<br>✓ MIDI file analysis<br>✓ Track detection |
-| **test_dynamic_track** | Dynamic track events | ✓ Dynamic track properties<br>✓ Event generation at intervals<br>✓ Correct timing calculations |
-| **test_pitch_follow** | PITCH_FOLLOW mode | ✓ Tone class functionality<br>✓ PitchFollowMapper logic<br>✓ Bounce_out behavior<br>✓ Integration with renderer |
+| Test                     | Purpose                | What it Verifies                                                                                    |
+|--------------------------|------------------------|------------------------------------------------------------------------------------------------------|
+| **test_no_errors**       | Core addon health      | ✓ Addon loads without console errors<br>✓ All panels registered<br>✓ Properties initialized         |
+| **test_3tab_layout**     | UI structure           | ✓ All 3 tabs exist (MPC-Run, MPC-Pose, MPC-MIDI)<br>✓ All panels in correct tabs<br>✓ bl_category set correctly |
+| **test_multitrack**      | Multi-track selection  | ✓ Multiple tracks can be selected<br>✓ Per-track note filters work<br>✓ Filter operators function  |
+| **test_midi_operator**   | User workflow          | ✓ MIDI file loads via operator<br>✓ Tracks populate correctly<br>✓ Note selection works            |
+| **test_midi_simple**     | Core MIDI              | ✓ mido library imports<br>✓ MIDI file analysis<br>✓ Track detection                                |
+| **test_dynamic_track**   | Dynamic track events   | ✓ Dynamic track properties<br>✓ Event generation at intervals<br>✓ Correct timing calculations     |
+| **test_pitch_follow**    | PITCH_FOLLOW mode      | ✓ Tone class functionality<br>✓ PitchFollowMapper logic<br>✓ Bounce_out behavior<br>✓ Integration with renderer |
 
 ### Writing New Tests
 1. Create `test/test_NAME.py` with `main()` function
@@ -397,27 +397,27 @@ python test/run_test_wrapper.py test_midi_operator
 
 ### Deprecated Code (No Longer Used)
 
-| File/Feature | Status | Reason |
-|--------------|--------|--------|
-| **node_tree.py** | DEPRECATED | Switched to 3-tab N-panel UI |
-| **node_operators.py** | DEPRECATED | Node workflow removed |
-| **workspace_node_based.py** | DEPRECATED | No node workspace needed |
-| **ui_properties_panels.py** | REPLACED | Replaced by ui_panels_*.py |
-| **Single track selection** | REMOVED | Now supports multi-track |
-| **Global note filtering** | REMOVED | Per-track filtering instead |
+| File/Feature                | Status     | Reason                         |
+|-----------------------------|------------|---------------------------------|
+| **node_tree.py**            | DEPRECATED | Switched to 3-tab N-panel UI   |
+| **node_operators.py**       | DEPRECATED | Node workflow removed           |
+| **workspace_node_based.py** | DEPRECATED | No node workspace needed        |
+| **ui_properties_panels.py** | REPLACED   | Replaced by ui_panels_*.py     |
+| **Single track selection**  | REMOVED    | Now supports multi-track       |
+| **Global note filtering**   | REMOVED    | Per-track filtering instead    |
 
 ### Active Core Components
 
-| Component | Purpose |
-|-----------|---------|
-| **ui_panels_run.py** | MPC-Run tab - main execution |
-| **ui_panels_pose.py** | MPC-Pose tab - pose management |
-| **ui_panels_midi.py** | MPC-MIDI tab - MIDI/track handling |
-| **ui_operators.py** | All operators and properties |
-| **midi_core.py** | MIDI file analysis with mido |
-| **animation_renderer.py** | Keyframe generation |
-| **tone.py** | MIDI tone representation with names |
-| **pitch_follow_mapper.py** | Pitch-to-pose mapping logic |
+| Component                   | Purpose                             |
+|-----------------------------|-------------------------------------|
+| **ui_panels_run.py**        | MPC-Run tab - main execution        |
+| **ui_panels_pose.py**       | MPC-Pose tab - pose management      |
+| **ui_panels_midi.py**       | MPC-MIDI tab - MIDI/track handling  |
+| **ui_operators.py**         | All operators and properties        |
+| **midi_core.py**            | MIDI file analysis with mido        |
+| **animation_renderer.py**   | Keyframe generation                 |
+| **tone.py**                 | MIDI tone representation with names |
+| **pitch_follow_mapper.py**  | Pitch-to-pose mapping logic         |
 
 ## Development Notes
 
@@ -505,33 +505,33 @@ blender --background --python mpc_headless.py -- input.md --validate-only
 Markdown tables with three sections:
 
 #### Form Table
-| Field | Description | Default |
-|-------|-------------|---------|
-| actionNameToCreate | Output action name | Required |
-| bpm | Beats per minute | 120 |
-| beatsPerBar | Time signature | 4 |
-| blendFileToOutputAction | Output blend file | Required |
-| poseBlendFile | Source poses file | Required |
-| poseCatalog | Root catalog name | Required |
-| midiFile | MIDI input file | Required |
+| Field                       | Description                | Default  |
+|-----------------------------|----------------------------|----------|
+| actionNameToCreate          | Output action name         | Required |
+| bpm                         | Beats per minute           | 120      |
+| beatsPerBar                 | Time signature             | 4        |
+| blendFileToOutputAction     | Output blend file          | Required |
+| poseBlendFile               | Source poses file          | Required |
+| poseCatalog                 | Root catalog name          | Required |
+| midiFile                    | MIDI input file            | Required |
 
 #### Dance Table  
-| Field | Description | Default |
-|-------|-------------|---------|
-| poseCatalog | Pose folder/catalog | Required |
-| track | MIDI track name | Required |
-| cycleMode | loop/random/pitch_follow/boomerang | loop |
-| interpolation | Blender interpolation type | cubic |
-| preHold | Frames before transition | 8 |
-| postHold | Frames to hold pose | 2 |
+| Field                       | Description                | Default  |
+|-----------------------------|----------------------------|----------|
+| poseCatalog                 | Pose folder/catalog        | Required |
+| track                       | MIDI track name            | Required |
+| cycleMode                   | loop/random/pitch_follow/boomerang | loop     |
+| interpolation               | Blender interpolation type | cubic    |
+| preHold                     | Frames before transition   | 8        |
+| postHold                    | Frames to hold pose        | 2        |
 
 #### Video Table (Optional)
-| Field | Description | Default |
-|-------|-------------|---------|
-| shouldCreateVideo? | yes/no | no |
-| audioFile | Audio sync file | Required if video |
-| renderDir | Output directory | Required if video |
-| charFile | Character rig file | Required if video |
+| Field                       | Description                | Default  |
+|-----------------------------|----------------------------|----------|
+| shouldCreateVideo?          | yes/no                     | no               |
+| audioFile                   | Audio sync file            | Required if video|
+| renderDir                   | Output directory           | Required if video|
+| charFile                    | Character rig file         | Required if video|
 
 ### Example Input
 ```markdown
@@ -561,15 +561,15 @@ Markdown tables with three sections:
 ### Architecture
 
 #### Modules
-| Module | Purpose |
-|--------|---------|
-| `headless/const.py` | Default values and constants |
-| `headless/models.py` | Data models with validation |
-| `headless/parser.py` | Markdown table parser |
-| `headless/pose_finder.py` | Pose catalog discovery |
-| `headless/animation_generator.py` | Animation creation |
-| `headless/video_renderer.py` | Video export with audio |
-| `mpc_headless.py` | Main entry point |
+| Module                             | Purpose                      |
+|------------------------------------|------------------------------|
+| `headless/const.py`                | Default values and constants |
+| `headless/models.py`               | Data models with validation  |
+| `headless/parser.py`               | Markdown table parser        |
+| `headless/pose_finder.py`          | Pose catalog discovery       |
+| `headless/animation_generator.py`  | Animation creation           |
+| `headless/video_renderer.py`       | Video export with audio      |
+| `mpc_headless.py`                  | Main entry point             |
 
 #### Key Classes
 - **FormTable**: Form configuration with validation
@@ -583,10 +583,10 @@ Markdown tables with three sections:
 Comprehensive validation with tabular output:
 ```
 | Field                | Status | Message                    |
-|---------------------|--------|----------------------------|
-| actionNameToCreate  | ✓      | Action name provided       |
-| midiFile            | ✗      | File not found: test.mid   |
-| poseCatalog         | ✓      | Catalog: hips              |
+|----------------------|--------|----------------------------|
+| actionNameToCreate   | ✓      | Action name provided       |
+| midiFile             | ✗      | File not found: test.mid  |
+| poseCatalog          | ✓      | Catalog: hips              |
 ```
 
 ### Pre/Post Hold Logic
