@@ -18,17 +18,19 @@ services:
     volumes:
       # Map entire project directory to /workspace (changes sync both ways)
       - .:/workspace:rw
+      # Mount host Claude config directory (from WSL ~/.claude)
+      - ~/.claude:/home/developer/.claude:rw
       # Persist cache and config
       - blender-cache:/home/developer/.cache
       - blender-config:/home/developer/.config
-      # Persist Claude CLI config
-      - claude-config:/home/developer/.claude
       
     # Environment variables
     environment:
       - DISPLAY=${DISPLAY:-:0}
       - BLENDER_USER_SCRIPTS=/workspace
       - PYTHONPATH=/workspace:/opt/blender/4.5/python/lib/python3.11/site-packages
+      # Tell Claude CLI where to find config
+      - CLAUDE_CONFIG_DIR=/home/developer/.claude
       
     # Network mode for display (if needed for GUI debugging)
     network_mode: host
@@ -46,6 +48,4 @@ volumes:
   blender-cache:
     driver: local
   blender-config:
-    driver: local
-  claude-config:
     driver: local

@@ -16,20 +16,47 @@ https://docs.docker.com/desktop/features/wsl/
 git clone <repository-url>
 cd midi-pose-cycler
 
-# 2. Build and launch interactive Docker shell
+# 2. Authenticate Claude CLI on your WSL host (one-time setup)
+claude  # Run this in WSL to login with your Claude account
+
+# 3. Build and launch interactive Docker shell
 ./scripts/docker-shell.sh
 
-# 3. Inside container, you now have access to:
-#    - claude (Claude CLI for development)
+# 4. Inside container, Claude CLI is already authenticated!
+claude  # Uses your WSL ~/.claude config automatically
+
+# 5. You also have access to:
 #    - blender (Blender 4.5 for testing)
 #    - python3 (for running tests)
-
-# Example: Use Claude CLI in the container
-claude
 
 # Example: Run headless animation generation
 blender --background --python mpc_headless.py -- test/example_input.md
 ```
+
+### 🔐 Claude CLI Authentication
+
+**Simple & Secure Setup**:
+
+1. **Authenticate Claude CLI on your WSL host** (one-time setup):
+   ```bash
+   # In WSL (outside Docker), run:
+   claude
+   # Follow the prompts to login with your Claude account
+   ```
+
+2. **That's it!** Docker will automatically mount your `~/.claude` config directory
+
+**How it works**:
+- Your Claude credentials stay in WSL `~/.claude` directory
+- Docker mounts this directory read-write into the container
+- Claude CLI in the container uses `CLAUDE_CONFIG_DIR` environment variable
+- No API keys or tokens in code, no `.env` file needed!
+
+**Security benefits**:
+- ✅ No credentials in Docker image
+- ✅ No credentials in git repository  
+- ✅ Uses your existing Claude authentication
+- ✅ Automatically stays in sync with your WSL Claude config
 
 ### Docker Setup Details
 

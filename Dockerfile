@@ -106,6 +106,8 @@ ENV BLENDER_USER_CONFIG=/home/$USERNAME/.config/blender/4.5
 
 # Set Claude Code environment
 ENV CLAUDE_CODE_IN_DOCKER=true
+# Point Claude to config directory that will be mounted from host
+ENV CLAUDE_CONFIG_DIR=/home/developer/.claude
 
 # Create volume mount points
 VOLUME ["/workspace", "/home/$USERNAME/.cache", "/home/$USERNAME/.claude"]
