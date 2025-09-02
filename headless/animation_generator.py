@@ -299,6 +299,10 @@ class AnimationGenerator:
         # Load MIDI tracks
         midi_tracks = self.load_midi_tracks()
         
+        # Check for bone conflicts between pose catalogs
+        if not self.validate_bone_conflicts():
+            raise ValueError("Bone conflicts detected between pose catalogs")
+        
         # Create output blend file if needed
         output_path = Path(self.config.form.blendFileToOutputAction)
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -379,3 +383,58 @@ class AnimationGenerator:
         
         print(f"Animation saved to: {output_path}")
         return str(output_path)
+    
+    def validate_bone_conflicts(self) -> bool:
+        """Validate that different pose catalogs don't use overlapping bones.
+        
+        Returns:
+            True if no conflicts, False otherwise
+        """
+        # Collect bones used by each catalog
+        catalog_bones = {}
+        
+        for dance_row in self.config.dance.rows:
+            catalog_name = dance_row.poseCatalog
+            if catalog_name in catalog_bones:
+                continue  # Already processed
+            
+            # Get poses for this catalog
+            poses = self.get_poses_for_catalog(
+                catalog_name,
+                self.config.form.poseBlendFile
+            )
+            
+            if not poses:
+                print(f"Warning: No poses found for catalog '{catalog_name}'")
+                continue
+            
+            # Get bones used by first pose (assuming all poses in catalog use same bones)
+            bones = set()
+            if poses and self.bpy:
+                # Load first pose to check bones
+                first_pose = poses[0]
+                if first_pose in self.bpy.data.actions:
+                    action = self.bpy.data.actions[first_pose]
+                    # Extract bone names from fcurves
+                    for fcurve in action.fcurves:
+                        # FCurve data path format: pose.bones["BoneName"].property
+                        if 'bones[' in fcurve.data_path:
+                            bone_name = fcurve.data_path.split('"')[1]
+                            bones.add(bone_name)
+            
+            catalog_bones[catalog_name] = bones
+        
+        # Check for conflicts
+        catalogs = list(catalog_bones.keys())
+        for i in range(len(catalogs)):
+            for j in range(i + 1, len(catalogs)):
+                cat1, cat2 = catalogs[i], catalogs[j]
+                overlap = catalog_bones[cat1] & catalog_bones[cat2]
+                if overlap:
+                    print(f"\nERROR: Bone conflict detected!")
+                    print(f"Catalogs '{cat1}' and '{cat2}' both use bones: {overlap}")
+                    print("Different pose catalogs must not use the same bones.")
+                    return False
+        
+        print("✓ No bone conflicts detected between pose catalogs")
+        return True

@@ -104,12 +104,24 @@ class SimpleVideoRenderer:
                 frame_max = max(frame_max, keyframe.co[0])
         
         if frame_min != float('inf'):
-            # Limit to first 24 frames for testing (1 second at 24fps)
-            self.bpy.context.scene.frame_start = int(frame_min)
-            self.bpy.context.scene.frame_end = min(int(frame_max), int(frame_min) + 24)
-            print(f"   Frame range: {self.bpy.context.scene.frame_start} - {self.bpy.context.scene.frame_end}")
-            print(f"   Duration: {(self.bpy.context.scene.frame_end - self.bpy.context.scene.frame_start + 1) / 24:.2f} seconds at 24fps")
-            print(f"   (Limited to 24 frames for testing)")
+            # For POC, limit frames but show what full duration would be
+            actual_start = int(frame_min)
+            actual_end = int(frame_max)
+            
+            # POC limit
+            poc_limit = 48  # 2 seconds at 24fps
+            limited_end = min(actual_end, actual_start + poc_limit - 1)
+            
+            self.bpy.context.scene.frame_start = actual_start
+            self.bpy.context.scene.frame_end = limited_end
+            
+            print(f"   Action frame range: {actual_start} - {actual_end}")
+            print(f"   Action duration: {(actual_end - actual_start + 1) / 24:.2f} seconds at 24fps")
+            print(f"   POC render range: {actual_start} - {limited_end}")
+            print(f"   POC duration: {(limited_end - actual_start + 1) / 24:.2f} seconds")
+            
+            if actual_end > limited_end:
+                print(f"   (Limited to {poc_limit} frames for POC testing)")
         else:
             # Default to 24 frames if no keyframes found
             self.bpy.context.scene.frame_start = 1

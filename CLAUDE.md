@@ -607,9 +607,11 @@ python test/test_headless_all.py
 python test/test_headless_models.py     # Data models
 python test/test_headless_parser.py     # Parser logic
 python test/test_headless_integration.py # Integration
+python test/test_video_length.py        # Video duration validation
 
-# Blender integration test
-blender --background --python mpc_headless.py -- test/example_input.md --validate-only
+# Direct invocation tests
+python3 mpc_headless.py headless_test/example_input.md --validate-only
+python3 mpc_headless.py headless_test/example_input.md  # Full run with video
 ```
 
 ### Pose Catalog Resolution
@@ -619,17 +621,48 @@ blender --background --python mpc_headless.py -- test/example_input.md --validat
 4. Poses ordered alphabetically by filename
 
 ### Bone Conflict Detection
-Validates that different poseCatalogs don't use overlapping bones to prevent animation conflicts.
+✅ **Implemented**: Validates that different poseCatalogs don't use overlapping bones to prevent animation conflicts.
+- Extracts bone names from FCurves in pose actions
+- Compares bone sets between catalogs
+- Reports specific conflicts and aborts if found
 
 ### Video Rendering
-1. Creates temporary blend file
+✅ **Working**: Successfully renders video with audio
+1. Creates working copy of character file (POC shortcut)
 2. Loads character from charFile
 3. Applies generated action
 4. Adds audio to sequencer
-5. Renders MP4 with H.264 codec
-6. Output: `YY-MM-DD-HH-MM-SS-charName-actionName.mp4`
+5. Renders MP4 with H.264 codec (320x240 POC resolution)
+6. Output: `renders/test_YYMMDD_HHMMSS.mp4` (POC format)
+
+**POC Limitations**:
+- Resolution: 320x240 (for speed)
+- Frame limit: 48 frames max
+- Render samples: 1 (minimum quality)
+- File copy instead of proper linking
+
+## Headless Mode Status
+
+### ✅ Completed Features
+- Markdown table parsing (Form, Dance, Video tables)
+- Pose catalog detection from Blender asset catalogs
+- MIDI file loading and track analysis
+- Animation generation with keyframes
+- Bone conflict detection between catalogs
+- Video rendering with audio (POC quality)
+- Direct script invocation with `-s` flag
+- Docker environment support
+- Integration tests for video length
+
+### 🚧 Future Work
+- Increase render quality from 320x240 POC
+- Remove 48-frame limit for production
+- Implement proper asset linking (not file copying)
+- Add "head" pose catalog support when available
+- Output filename format: `YY-MM-DD-HH-MM-SS-charName-actionName.mp4`
 
 ## Version History
+- **0.7.1**: Headless video rendering working, bone conflict detection
 - **0.7.0**: Headless mode with markdown input
 - **0.6.0**: PITCH_FOLLOW mode, Tone filtering, smart controls
 - **0.5.0**: ACTION mode, BPM timing, pose reordering

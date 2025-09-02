@@ -5,8 +5,8 @@
 | actionNameToCreate      | integration-test-04         |
 | bpm                     | 96                          |
 | beatsPerBar             | 4                           |
-| blendFileToOutputAction | headless_test/actions.blend   |
-| poseBlendFile           | assets/dobby-poses.blend           |
+| blendFileToOutputAction | headless_test/actions.blend |
+| poseBlendFile           | assets/dobby-poses.blend    |
 | midiFile                | assets/eight-bars-thang.mid |
 
 
